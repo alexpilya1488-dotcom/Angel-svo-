@@ -92,6 +92,99 @@
     display: none;
   }
   .legend.open { display: block; }
+
+  .geo-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: #16a34ae0;
+    border: 1px solid #15803d;
+    color: white;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+  }
+  .sos-toggle {
+    position: fixed;
+    top: 58px;
+    right: 12px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: #dc2626e0;
+    border: 1px solid #991b1b;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+  }
+  .sos-toggle.active {
+    background: #7f1d1d;
+    animation: sos-btn-pulse 1s ease-in-out infinite;
+  }
+  @keyframes sos-btn-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+  }
+
+  /* Пульсирующая метка "Тревога" на карте */
+  .sos-marker-wrap {
+    width: 26px;
+    height: 26px;
+    position: relative;
+  }
+  .sos-marker-dot {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #dc2626;
+    border: 2px solid #fff;
+  }
+  .sos-marker-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(220,38,38,0.35);
+    animation: sos-ring 1.4s ease-out infinite;
+  }
+  @keyframes sos-ring {
+    0% { transform: scale(0.3); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  /* Орбита БПЛА над зоной угрозы */
+  .drone-orbit {
+    width: 56px;
+    height: 56px;
+    position: relative;
+    animation: drone-spin 5s linear infinite;
+  }
+  .drone-icon {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    animation: drone-counter-spin 5s linear infinite;
+  }
+  @keyframes drone-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes drone-counter-spin {
+    from { transform: translateX(-50%) rotate(0deg); }
+    to { transform: translateX(-50%) rotate(-360deg); }
+  }
+  .wreck-icon {
+    font-size: 26px;
+    text-align: center;
+    line-height: 1;
+  }
   .legend span.dot {
     display: inline-block;
     width: 10px;
@@ -346,6 +439,9 @@
     <div><span class="dot" style="background:#a855f7"></span>Другое</div>
   </div>
 
+  <button class="geo-toggle" id="geoMarkBtn">📍 Отметить здесь</button>
+  <button class="sos-toggle" id="sosBtn">🚨 Тревога</button>
+
   <button class="chat-toggle" id="chatToggle">💬</button>
 
   <div class="chat-panel" id="chatPanel">
@@ -363,7 +459,7 @@
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h2>Новая отметка</h2>
+    <h2 id="modalTitle">Новая отметка</h2>
 
     <label>Тип угрозы</label>
     <select id="markType">
@@ -402,7 +498,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, addDoc, onSnapshot,
-    doc, updateDoc, deleteDoc, arrayUnion, serverTimestamp,
+    doc, setDoc, updateDoc, deleteDoc, arrayUnion, serverTimestamp,
     query, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -443,6 +539,7 @@
   const db = getFirestore(app);
   const marksCollection = collection(db, "marks");
   const chatCollection = collection(db, "chat");
+  const alertsCollection = collection(db, "alerts");
 
   // ---- Карта ----
   // Область: Донецкая, Луганская, Запорожская
@@ -547,10 +644,11 @@
   function renderMark(id, data) {
     const meta = typeMeta[data.type] || typeMeta.other;
     if (markersById[id]) {
-      markersById[id].setPopupContent(buildPopupContent(id, data));
+      markersById[id].marker.setPopupContent(buildPopupContent(id, data));
       return;
     }
     let marker;
+    let droneMarker = null;
     if (data.type === 'uav' && data.radius) {
       marker = L.circle([data.lat, data.lng], {
         radius: data.radius,
@@ -559,6 +657,21 @@
         weight: 2,
         fillOpacity: 0.2
       }).addTo(map);
+      const droneIcon = L.divIcon({
+        className: '',
+        html: '<div class="drone-orbit"><div class="drone-icon">🛸</div></div>',
+        iconSize: [56, 56],
+        iconAnchor: [28, 28]
+      });
+      droneMarker = L.marker([data.lat, data.lng], { icon: droneIcon, interactive: false }).addTo(map);
+    } else if (data.type === 'wreck') {
+      const wreckIcon = L.divIcon({
+        className: '',
+        html: '<div class="wreck-icon">🔥🚗</div>',
+        iconSize: [40, 30],
+        iconAnchor: [20, 15]
+      });
+      marker = L.marker([data.lat, data.lng], { icon: wreckIcon }).addTo(map);
     } else {
       marker = L.circleMarker([data.lat, data.lng], {
         radius: 9,
@@ -569,7 +682,7 @@
       }).addTo(map);
     }
     marker.bindPopup(buildPopupContent(id, data));
-    markersById[id] = marker;
+    markersById[id] = { marker, droneMarker };
     dataById[id] = data;
   }
 
@@ -595,7 +708,8 @@
       const data = change.doc.data();
       if (change.type === 'removed') {
         if (markersById[id]) {
-          map.removeLayer(markersById[id]);
+          map.removeLayer(markersById[id].marker);
+          if (markersById[id].droneMarker) map.removeLayer(markersById[id].droneMarker);
           delete markersById[id];
         }
         delete dataById[id];
@@ -634,6 +748,7 @@
 
   map.on('click', (e) => {
     pendingLatLng = e.latlng;
+    modalTitle.textContent = 'Новая отметка';
     overlay.classList.add('open');
   });
 
@@ -664,6 +779,111 @@
     overlay.classList.remove('open');
     document.getElementById('markComment').value = '';
     pendingLatLng = null;
+  });
+
+  // ---- Быстрая метка по геолокации ----
+  const geoMarkBtn = document.getElementById('geoMarkBtn');
+  const modalTitle = document.getElementById('modalTitle');
+
+  geoMarkBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert('Геолокация не поддерживается этим браузером.');
+      return;
+    }
+    geoMarkBtn.textContent = '📍 Определяю...';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        geoMarkBtn.textContent = '📍 Отметить здесь';
+        pendingLatLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        modalTitle.textContent = 'Новая отметка (моё местоположение)';
+        overlay.classList.add('open');
+      },
+      () => {
+        geoMarkBtn.textContent = '📍 Отметить здесь';
+        alert('Не удалось определить местоположение. Проверьте разрешения геолокации.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  });
+
+  // ---- Тревога (SOS) ----
+  const sosBtn = document.getElementById('sosBtn');
+  let sosWatchId = null;
+  let sosActive = false;
+
+  function stopSos() {
+    if (sosWatchId !== null) {
+      navigator.geolocation.clearWatch(sosWatchId);
+      sosWatchId = null;
+    }
+    sosActive = false;
+    sosBtn.textContent = '🚨 Тревога';
+    sosBtn.classList.remove('active');
+    deleteDoc(doc(db, 'alerts', OWNER_ID)).catch(() => {});
+  }
+
+  function startSos() {
+    if (!navigator.geolocation) {
+      alert('Геолокация не поддерживается этим браузером.');
+      return;
+    }
+    sosActive = true;
+    sosBtn.textContent = '🚨 Отменить тревогу';
+    sosBtn.classList.add('active');
+    sosWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setDoc(doc(db, 'alerts', OWNER_ID), {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          ownerId: OWNER_ID,
+          nickname: NICKNAME,
+          updatedAt: serverTimestamp()
+        }).catch(() => {});
+      },
+      () => {
+        alert('Не удалось определить местоположение для тревоги.');
+        stopSos();
+      },
+      { enableHighAccuracy: true }
+    );
+  }
+
+  sosBtn.addEventListener('click', () => {
+    if (sosActive) {
+      if (confirm('Отменить тревогу?')) stopSos();
+    } else {
+      if (confirm('Включить тревогу? Ваше местоположение будет видно всем на карте, пока вы её не отмените.')) startSos();
+    }
+  });
+
+  // Показ чужих (и своей) тревог на карте в реальном времени
+  const sosMarkersById = {};
+  onSnapshot(alertsCollection, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      if (change.type === 'removed') {
+        if (sosMarkersById[id]) {
+          map.removeLayer(sosMarkersById[id]);
+          delete sosMarkersById[id];
+        }
+        return;
+      }
+      const data = change.doc.data();
+      if (!data.lat || !data.lng) return;
+      const icon = L.divIcon({
+        className: '',
+        html: '<div class="sos-marker-wrap"><div class="sos-marker-ring"></div><div class="sos-marker-dot"></div></div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      if (sosMarkersById[id]) {
+        sosMarkersById[id].setLatLng([data.lat, data.lng]);
+      } else {
+        const m = L.marker([data.lat, data.lng], { icon, zIndexOffset: 1000 }).addTo(map);
+        m.bindPopup(`<b>🚨 Тревога</b><div style="font-size:12px;margin-top:4px">${escapeHtml(data.nickname || 'Пользователь')}</div>`);
+        sosMarkersById[id] = m;
+      }
+    });
   });
 
   // ---- Чат ----
