@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Карта безопасности дорог</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1115;
+    color: #e8e8e8;
+  }
+  #map {
+    position: absolute;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: #171a21;
+    border-bottom: 1px solid #2a2e37;
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  .hint {
+    font-size: 12px;
+    color: #9aa1ac;
+  }
+  .legend {
+    position: absolute;
+    bottom: 20px;
+    left: 12px;
+    background: #171a21e0;
+    border: 1px solid #2a2e37;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    z-index: 500;
+    line-height: 1.8;
+  }
+  .legend span.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  /* Модальное окно добавления отметки */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #171a21;
+    border: 1px solid #2a2e37;
+    border-radius: 14px;
+    padding: 20px;
+    width: 320px;
+    max-width: 90vw;
+  }
+  .modal h2 {
+    font-size: 15px;
+    margin: 0 0 14px 0;
+  }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    color: #9aa1ac;
+    margin: 12px 0 4px;
+  }
+  .modal input[type="range"] {
+    padding: 0;
+    accent-color: #3b82f6;
+  }
+  .modal select, .modal input, .modal textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #2a2e37;
+    background: #0f1115;
+    color: #e8e8e8;
+    font-size: 14px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-primary { background: #3b82f6; color: white; }
+  .btn-secondary { background: #2a2e37; color: #e8e8e8; }
+
+  .popup-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .popup-actions button {
+    flex: 1;
+    padding: 6px;
+    border-radius: 6px;
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .btn-confirm { background: #16a34a; color: white; }
+  .btn-deny { background: #dc2626; color: white; }
+  .btn-delete { background: #4b5563; color: white; }
+  .stale-badge {
+    display: inline-block;
+    background: #7c2d12;
+    color: #fed7aa;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🗺️ Карта безопасности дорог</h1>
+  <span class="hint">Клик по карте — добавить отметку</span>
+</header>
+
+<div id="map"></div>
+
+<div class="legend">
+  <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
+  <div><span class="dot" style="background:#f59e0b"></span>Повреждённая техника</div>
+  <div><span class="dot" style="background:#a855f7"></span>Другое</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>Новая отметка</h2>
+
+    <label>Тип угрозы</label>
+    <select id="markType">
+      <option value="uav">БПЛА-угроза</option>
+      <option value="wreck">Повреждённая техника на дороге</option>
+      <option value="other">Другое</option>
+    </select>
+
+    <div id="uavFields">
+      <label>Тип БПЛА</label>
+      <select id="uavSubtype">
+        <option value="recon">Разведывательный</option>
+        <option value="fpv">FPV / камикадзе</option>
+        <option value="bomber">Сброс боеприпасов</option>
+        <option value="unknown">Неизвестно</option>
+      </select>
+
+      <label>Радиус угрозы: <span id="radiusValue">500</span> м</label>
+      <input type="range" id="uavRadius" min="100" max="5000" step="100" value="500">
+    </div>
+
+    <label>Комментарий (необязательно)</label>
+    <textarea id="markComment" rows="2" placeholder="Например: замечен 20 мин назад, направление движения..."></textarea>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="cancelBtn">Отмена</button>
+      <button class="btn btn-primary" id="saveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, onSnapshot,
+    doc, updateDoc, deleteDoc, increment, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // Локальный ID устройства — чтобы определить "своя" ли отметка (для показа кнопки удаления).
+  // Это не настоящая аутентификация, просто удобство: сама защита от чужого удаления настраивается в Firestore Rules.
+  function getOwnerId() {
+    let id = localStorage.getItem('ownerId');
+    if (!id) {
+      id = 'u_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('ownerId', id);
+    }
+    return id;
+  }
+  const OWNER_ID = getOwnerId();
+
+  // ЗАПОЛНИТЕ СВОИМИ ДАННЫМИ ИЗ FIREBASE CONSOLE
+  const firebaseConfig = {
+    apiKey: "AIzaSyBWhYlPdhSllNXh6aOoJnOV58XUQcgsNfI",
+    authDomain: "angel-svo.firebaseapp.com",
+    projectId: "angel-svo",
+    storageBucket: "angel-svo.firebasestorage.app",
+    messagingSenderId: "701491399396",
+    appId: "1:701491399396:web:45fcdf0124d001705cfaf1",
+    measurementId: "G-32F0BEZPL5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const marksCollection = collection(db, "marks");
+
+  // ---- Карта ----
+  // Область: Донецкая, Луганская, Запорожская
+  const REGION_BOUNDS = L.latLngBounds([46.0, 34.0], [49.8, 40.2]);
+
+  const map = L.map('map', {
+    maxBounds: REGION_BOUNDS.pad(0.1),
+    maxBoundsViscosity: 0.8
+  });
+  map.fitBounds(REGION_BOUNDS);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    minZoom: 7
+  }).addTo(map);
+
+  const STALE_HOURS = 12; // через сколько часов без подтверждений отметка считается неактуальной
+
+  const typeMeta = {
+    uav:   { color: '#dc2626', label: 'БПЛА-угроза' },
+    wreck: { color: '#f59e0b', label: 'Повреждённая техника' },
+    other: { color: '#a855f7', label: 'Другое' }
+  };
+
+  const uavSubtypeLabels = {
+    recon: 'Разведывательный',
+    fpv: 'FPV / камикадзе',
+    bomber: 'Сброс боеприпасов',
+    unknown: 'Неизвестно'
+  };
+
+  const markersById = {};
+
+  function timeAgo(ts) {
+    if (!ts) return 'только что';
+    const diffMs = Date.now() - ts.toDate().getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'только что';
+    if (mins < 60) return `${mins} мин назад`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} ч назад`;
+    return `${Math.floor(hrs / 24)} дн назад`;
+  }
+
+  function buildPopupContent(id, data) {
+    const meta = typeMeta[data.type] || typeMeta.other;
+    const isStale = data.createdAt && (Date.now() - data.createdAt.toDate().getTime()) > STALE_HOURS * 3600 * 1000
+      && (data.confirms || 0) <= (data.denies || 0);
+
+    let html = `<div style="min-width:180px">`;
+    html += `<b>${meta.label}</b>`;
+    if (isStale) html += `<span class="stale-badge">Возможно неактуально</span>`;
+    if (data.type === 'uav' && data.subtype) {
+      html += `<div style="font-size:12px;color:#666;margin-top:2px">${uavSubtypeLabels[data.subtype] || data.subtype}</div>`;
+    }
+    if (data.comment) {
+      html += `<div style="font-size:12px;margin-top:6px">${escapeHtml(data.comment)}</div>`;
+    }
+    html += `<div style="font-size:11px;color:#888;margin-top:6px">${timeAgo(data.createdAt)} · 👍 ${data.confirms || 0} · 👎 ${data.denies || 0}</div>`;
+    html += `<div class="popup-actions">
+      <button class="btn-confirm" onclick="window.__confirmMark('${id}')">Актуально</button>
+      <button class="btn-deny" onclick="window.__denyMark('${id}')">Не актуально</button>
+    </div>`;
+    if (data.ownerId === OWNER_ID) {
+      html += `<div class="popup-actions">
+        <button class="btn-delete" onclick="window.__deleteMark('${id}')">Удалить мою отметку</button>
+      </div>`;
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderMark(id, data) {
+    const meta = typeMeta[data.type] || typeMeta.other;
+    if (markersById[id]) {
+      markersById[id].setPopupContent(buildPopupContent(id, data));
+      return;
+    }
+    let marker;
+    if (data.type === 'uav' && data.radius) {
+      marker = L.circle([data.lat, data.lng], {
+        radius: data.radius,
+        fillColor: meta.color,
+        color: meta.color,
+        weight: 2,
+        fillOpacity: 0.2
+      }).addTo(map);
+    } else {
+      marker = L.circleMarker([data.lat, data.lng], {
+        radius: 9,
+        fillColor: meta.color,
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.9
+      }).addTo(map);
+    }
+    marker.bindPopup(buildPopupContent(id, data));
+    markersById[id] = marker;
+  }
+
+  // Слушаем изменения в реальном времени
+  onSnapshot(marksCollection, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      const data = change.doc.data();
+      if (change.type === 'removed') {
+        if (markersById[id]) {
+          map.removeLayer(markersById[id]);
+          delete markersById[id];
+        }
+      } else {
+        renderMark(id, data);
+      }
+    });
+  });
+
+  window.__confirmMark = async (id) => {
+    await updateDoc(doc(db, 'marks', id), { confirms: increment(1) });
+  };
+  window.__denyMark = async (id) => {
+    await updateDoc(doc(db, 'marks', id), { denies: increment(1) });
+  };
+  window.__deleteMark = async (id) => {
+    if (!confirm('Удалить эту отметку?')) return;
+    await deleteDoc(doc(db, 'marks', id));
+  };
+
+  // ---- Добавление новой отметки ----
+  let pendingLatLng = null;
+  const overlay = document.getElementById('modalOverlay');
+  const typeSelect = document.getElementById('markType');
+  const uavFields = document.getElementById('uavFields');
+
+  typeSelect.addEventListener('change', () => {
+    uavFields.style.display = typeSelect.value === 'uav' ? 'block' : 'none';
+  });
+
+  const radiusInput = document.getElementById('uavRadius');
+  const radiusValue = document.getElementById('radiusValue');
+  radiusInput.addEventListener('input', () => {
+    radiusValue.textContent = radiusInput.value;
+  });
+
+  map.on('click', (e) => {
+    pendingLatLng = e.latlng;
+    overlay.classList.add('open');
+  });
+
+  document.getElementById('cancelBtn').addEventListener('click', () => {
+    overlay.classList.remove('open');
+    pendingLatLng = null;
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    if (!pendingLatLng) return;
+    const type = typeSelect.value;
+    const comment = document.getElementById('markComment').value.trim();
+    const payload = {
+      type,
+      lat: pendingLatLng.lat,
+      lng: pendingLatLng.lng,
+      comment,
+      confirms: 0,
+      denies: 0,
+      ownerId: OWNER_ID,
+      createdAt: serverTimestamp()
+    };
+    if (type === 'uav') {
+      payload.subtype = document.getElementById('uavSubtype').value;
+      payload.radius = Number(radiusInput.value);
+    }
+    await addDoc(marksCollection, payload);
+    overlay.classList.remove('open');
+    document.getElementById('markComment').value = '';
+    pendingLatLng = null;
+  });
+</script>
+</body>
+</html>
