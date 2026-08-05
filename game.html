@@ -1084,7 +1084,7 @@ import { FBXLoader } from './vendor/jsm/loaders/FBXLoader.js';
   // keep driving the reload/bolt animation math harmlessly in the background)
   const M60_SCALE = 0.0055;
   const m60Group = new THREE.Group();
-  m60Group.position.set(-0.01, -0.067, -0.086); // shifts the model's grip area to the gun's local origin
+  m60Group.position.set(0.01, -0.067, 0.086); // shifts the model's grip area to the gun's local origin
   gun.add(m60Group);
   new FBXLoader().load('vendor/models/m60.fbx', (obj) => {
     // the source FBX carries the original scene's studio lights baked in as
@@ -1104,6 +1104,7 @@ import { FBXLoader } from './vendor/jsm/loaders/FBXLoader.js';
       }
     });
     obj.scale.setScalar(M60_SCALE);
+    obj.rotation.y = Math.PI; // the source model's muzzle faces local +Z; flip so it faces forward (-Z), away from the player
     m60Group.add(obj);
     gun.userData.parts.forEach(m => { m.visible = false; });
     gun.userData.mag.visible = false;
