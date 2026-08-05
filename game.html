@@ -1065,7 +1065,7 @@ import { FBXLoader } from './vendor/jsm/loaders/FBXLoader.js';
   gun.scale.setScalar(0.72); // the fuller LMG model is longer than the old gun; scale it back
                               // down so it doesn't dominate the screen or poke past the near plane
   const gunRestPos = new THREE.Vector3(0.16, -0.17, -0.34);   // hip position (off to the side)
-  const gunAimPos  = new THREE.Vector3(0.0, -0.075, -0.26);   // centered, raised to eye line
+  const gunAimPos  = new THREE.Vector3(0.0, -0.16, -0.5);   // centered on the M60's rear sight (measured from its mesh), pulled back so the side-mounted ammo box doesn't dominate the sight picture at close range
   gun.position.copy(gunRestPos);
   camera.add(gun);
   const gunBarrel = gun.userData.barrel;
