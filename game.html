@@ -299,6 +299,66 @@
   scene.add(ground);
 
   function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function hexCss(n){ return '#' + n.toString(16).padStart(6,'0'); }
+
+  // ---------- procedural surface textures (siding / shingles) so buildings
+  // read as built structures rather than flat-colored boxes ----------
+  function makeSidingTexture(baseColor){
+    const w = 128, h = 128;
+    const cnv = document.createElement('canvas'); cnv.width = w; cnv.height = h;
+    const ctx = cnv.getContext('2d');
+    ctx.fillStyle = baseColor; ctx.fillRect(0, 0, w, h);
+    const plankH = 11;
+    for(let y = 0; y < h; y += plankH){
+      ctx.fillStyle = 'rgba(0,0,0,0.16)';
+      ctx.fillRect(0, y, w, 1.5);
+      ctx.fillStyle = 'rgba(255,255,255,0.07)';
+      ctx.fillRect(0, y + 1.5, w, 1.5);
+    }
+    ctx.globalAlpha = 0.08;
+    for(let i = 0; i < 90; i++){
+      ctx.fillStyle = Math.random() < 0.5 ? '#000' : '#fff';
+      ctx.fillRect(Math.random()*w, Math.random()*h, 1 + Math.random()*18, 1);
+    }
+    ctx.globalAlpha = 1;
+    const tex = new THREE.CanvasTexture(cnv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+  function makeShingleTexture(baseColor){
+    const w = 128, h = 128;
+    const cnv = document.createElement('canvas'); cnv.width = w; cnv.height = h;
+    const ctx = cnv.getContext('2d');
+    ctx.fillStyle = baseColor; ctx.fillRect(0, 0, w, h);
+    const rowH = 13;
+    for(let y = 0, row = 0; y < h; y += rowH, row++){
+      const offset = row % 2 === 0 ? 0 : 10;
+      ctx.strokeStyle = 'rgba(0,0,0,0.28)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      for(let x = -offset; x < w; x += 19){
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + rowH); ctx.stroke();
+      }
+    }
+    const tex = new THREE.CanvasTexture(cnv);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    return tex;
+  }
+
+  // triangular-prism gable roof (ridge along Z), built from an extruded triangle
+  // so houses read as real pitched roofs instead of a witch-hat cone
+  function makeGableRoofGeometry(w, d, rise, overhangX, overhangZ){
+    const halfW = w/2 + overhangX;
+    const shape = new THREE.Shape();
+    shape.moveTo(-halfW, 0);
+    shape.lineTo(0, rise);
+    shape.lineTo(halfW, 0);
+    shape.lineTo(-halfW, 0);
+    const depth = d + overhangZ*2;
+    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled:false, curveSegments:1 });
+    geo.translate(0, 0, -depth/2);
+    return geo;
+  }
 
   // ---------- dirt roads through the village ----------
   const roadMat = new THREE.MeshStandardMaterial({ color:0x6e5d46, roughness:1 });
@@ -318,31 +378,70 @@
   function buildHouse(x, z, rotY){
     const group = new THREE.Group();
     const w = 5 + Math.random()*2, d = 4.2 + Math.random()*1.4, h = 2.6 + Math.random()*0.5;
-    const wallMat = new THREE.MeshStandardMaterial({ color: pick([0xdccba0,0x8fb0c4,0xa8654e,0x9a8a68]), roughness:0.9 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: pick([0x6b3131,0x5a4632,0x40474a]), roughness:0.85 });
+    const wallColor = pick([0xdccba0,0x8fb0c4,0xa8654e,0x9a8a68,0xc9d3c0]);
+    const roofColor = pick([0x6b3131,0x5a4632,0x40474a,0x54463a]);
+    const wallMat = new THREE.MeshStandardMaterial({ map: makeSidingTexture(hexCss(wallColor)), roughness:0.92 });
+    wallMat.map.repeat.set(w/1.5, h/1.1);
+    const roofRise = 1.05 + Math.random()*0.35;
+    const roofMat = new THREE.MeshStandardMaterial({ map: makeShingleTexture(hexCss(roofColor)), roughness:0.88 });
+    roofMat.map.repeat.set(Math.max(w,d)/1.2, roofRise/0.9);
     const doorMat = new THREE.MeshStandardMaterial({ color:0x3d2b1f, roughness:0.85 });
-    const glassMat = new THREE.MeshStandardMaterial({ color:0xbfe0f0, roughness:0.3, metalness:0.2, emissive:0x1a2a30, emissiveIntensity:0.15 });
+    const doorFrameMat = new THREE.MeshStandardMaterial({ color:0xefe6d0, roughness:0.8 });
+    const glassMat = new THREE.MeshStandardMaterial({ color:0xbfe0f0, roughness:0.25, metalness:0.25, emissive:0x1a2a30, emissiveIntensity:0.15 });
+    const trimMat = new THREE.MeshStandardMaterial({ color:0xf2ead6, roughness:0.75 });
     const chimneyMat = new THREE.MeshStandardMaterial({ color:0x6b5648, roughness:0.9 });
+    const foundationMat = new THREE.MeshStandardMaterial({ color:0x7d7a74, roughness:0.95 });
+    const doorknobMat = new THREE.MeshStandardMaterial({ color:0xcaa03a, roughness:0.35, metalness:0.7 });
+
+    const foundation = new THREE.Mesh(new THREE.BoxGeometry(w+0.14, 0.28, d+0.14), foundationMat);
+    foundation.position.y = 0.14; foundation.castShadow = true; foundation.receiveShadow = true;
 
     const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
     body.position.y = h/2; body.castShadow = true; body.receiveShadow = true;
     body.userData.house = true;
 
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.72, 1.6, 4), roofMat);
-    roof.position.y = h + 0.75; roof.rotation.y = Math.PI/4; roof.castShadow = true;
+    const roof = new THREE.Mesh(makeGableRoofGeometry(w, d, roofRise, 0.35, 0.35), roofMat);
+    roof.position.y = h; roof.castShadow = true; roof.receiveShadow = true;
 
     const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.28,0.9,0.28), chimneyMat);
-    chimney.position.set(w*0.25, h+1.1, d*0.15);
+    chimney.position.set(w*0.25, h + roofRise*0.55, d*0.12);
+    const chimneyCap = new THREE.Mesh(new THREE.BoxGeometry(0.36,0.08,0.36), chimneyMat);
+    chimneyCap.position.set(chimney.position.x, chimney.position.y+0.49, chimney.position.z);
 
     const door = new THREE.Mesh(new THREE.BoxGeometry(0.85,1.7,0.06), doorMat);
     door.position.set(0, 0.85, d/2+0.02);
+    const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(1.0,1.86,0.05), doorFrameMat);
+    doorFrame.position.set(0, 0.93, d/2+0.005);
+    const doorknob = new THREE.Mesh(new THREE.SphereGeometry(0.03,8,8), doorknobMat);
+    doorknob.position.set(0.3, 0.85, d/2+0.07);
 
-    const win1 = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.55,0.05), glassMat);
-    win1.position.set(-w*0.28, h*0.6, d/2+0.02);
-    const win2 = win1.clone(); win2.position.x = w*0.28;
-    const winSide = win1.clone(); winSide.rotation.y = Math.PI/2; winSide.position.set(w/2+0.02, h*0.6, 0);
+    function makeWindow(px, pz, rotY2){
+      const grp = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.68,0.68,0.06), trimMat);
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.55,0.03), glassMat);
+      const mullionV = new THREE.Mesh(new THREE.BoxGeometry(0.025,0.55,0.035), trimMat);
+      const mullionH = new THREE.Mesh(new THREE.BoxGeometry(0.55,0.025,0.035), trimMat);
+      const sill = new THREE.Mesh(new THREE.BoxGeometry(0.78,0.06,0.1), trimMat);
+      sill.position.set(0, -0.37, 0.03);
+      grp.add(frame, glass, mullionV, mullionH, sill);
+      grp.position.set(px, h*0.6, pz);
+      grp.rotation.y = rotY2 || 0;
+      return grp;
+    }
+    const win1 = makeWindow(-w*0.28, d/2+0.02, 0);
+    const win2 = makeWindow(w*0.28, d/2+0.02, 0);
+    const winSide = makeWindow(w/2+0.02, 0, Math.PI/2);
 
-    group.add(body, roof, chimney, door, win1, win2, winSide);
+    // small porch roof over the front door for a lived-in, "pleasant" cottage feel
+    const porchRoof = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.06,0.6), roofMat);
+    porchRoof.position.set(0, 1.9, d/2+0.35); porchRoof.rotation.x = -0.08;
+    porchRoof.castShadow = true;
+    const postMat = trimMat;
+    const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.035,1.85,6), postMat);
+    postL.position.set(-0.68, 0.95, d/2+0.62); postL.castShadow = true;
+    const postR = postL.clone(); postR.position.x = 0.68;
+
+    group.add(foundation, body, roof, chimney, chimneyCap, door, doorFrame, doorknob, win1, win2, winSide, porchRoof, postL, postR);
     group.position.set(x, 0, z);
     group.rotation.y = rotY;
     scene.add(group);
@@ -369,36 +468,70 @@
   // ---------- parked cars ----------
   function buildCar(x, z, rotY){
     const group = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: pick([0xb23b3b,0x3b5bb2,0xd8d8d8,0x2f2f33,0x3f7a4a]), roughness:0.45, metalness:0.4 });
-    const glassMat = new THREE.MeshStandardMaterial({ color:0x1c2530, roughness:0.2, metalness:0.3 });
-    const wheelMat = new THREE.MeshStandardMaterial({ color:0x141414, roughness:0.9 });
-    const lightMat = new THREE.MeshStandardMaterial({ color:0xfff2c0, emissive:0xfff2c0, emissiveIntensity:0.4 });
-    const bumperMat = new THREE.MeshStandardMaterial({ color:0x24262a, roughness:0.6 });
+    const bodyColor = pick([0xb23b3b,0x3b5bb2,0xd8d8d8,0x2f2f33,0x3f7a4a]);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness:0.35, metalness:0.55 });
+    const bodyMatDark = new THREE.MeshStandardMaterial({ color: new THREE.Color(bodyColor).multiplyScalar(0.78), roughness:0.4, metalness:0.5 });
+    const glassMat = new THREE.MeshStandardMaterial({ color:0x1c2530, roughness:0.15, metalness:0.4 });
+    const tireMat = new THREE.MeshStandardMaterial({ color:0x141414, roughness:0.9 });
+    const rimMat = new THREE.MeshStandardMaterial({ color:0xb8bcc0, roughness:0.35, metalness:0.75 });
+    const lightMat = new THREE.MeshStandardMaterial({ color:0xfff2c0, emissive:0xfff2c0, emissiveIntensity:0.5 });
+    const tailMat = new THREE.MeshStandardMaterial({ color:0xb0201a, emissive:0x6a0f0c, emissiveIntensity:0.4 });
+    const bumperMat = new THREE.MeshStandardMaterial({ color:0x24262a, roughness:0.55, metalness:0.2 });
+    const grilleMat = new THREE.MeshStandardMaterial({ color:0x1a1b1e, roughness:0.6 });
 
-    const base = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.5,3.8), bodyMat);
-    base.position.y = 0.5; base.castShadow = true;
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,2.0), bodyMat);
-    cabin.position.set(0,0.98,-0.15); cabin.castShadow = true;
-    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.42,0.42,1.9), glassMat);
-    windshield.position.set(0,0.99,-0.15);
+    // lower chassis, sloped hood + trunk, and a narrower cabin roof give a
+    // real sedan silhouette instead of a plain box
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.46,3.8), bodyMat);
+    base.position.y = 0.48; base.castShadow = true;
 
-    const wheelGeo = new THREE.CylinderGeometry(0.32,0.32,0.24,10);
-    [[-0.85,0.32,1.25],[0.85,0.32,1.25],[-0.85,0.32,-1.25],[0.85,0.32,-1.25]].forEach(p => {
-      const wh = new THREE.Mesh(wheelGeo, wheelMat);
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.62,0.3,1.3), bodyMat);
+    hood.position.set(0, 0.78, 1.28); hood.rotation.x = 0.05; hood.castShadow = true;
+    const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.62,0.26,1.0), bodyMat);
+    trunk.position.set(0, 0.76, -1.42); trunk.rotation.x = -0.04; trunk.castShadow = true;
+
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.42,0.5,1.9), bodyMatDark);
+    cabin.position.set(0,0.98,-0.1); cabin.castShadow = true;
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.34,0.4,0.05), glassMat);
+    windshield.position.set(0,0.98,0.82); windshield.rotation.x = 0.42;
+    const rearGlass = new THREE.Mesh(new THREE.BoxGeometry(1.34,0.38,0.05), glassMat);
+    rearGlass.position.set(0,0.97,-1.02); rearGlass.rotation.x = -0.36;
+    const winL = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.32,1.5), glassMat);
+    winL.position.set(-0.72,1.0,-0.1);
+    const winR = winL.clone(); winR.position.x = 0.72;
+
+    const mirrorGeo = new THREE.BoxGeometry(0.05,0.09,0.14);
+    const mirrorL = new THREE.Mesh(mirrorGeo, bodyMatDark);
+    mirrorL.position.set(-0.78,0.92,0.55);
+    const mirrorR = mirrorL.clone(); mirrorR.position.x = 0.78;
+
+    const tireGeo = new THREE.CylinderGeometry(0.33,0.33,0.24,16);
+    const rimGeo = new THREE.CylinderGeometry(0.17,0.17,0.25,10);
+    [[-0.85,0.33,1.25],[0.85,0.33,1.25],[-0.85,0.33,-1.25],[0.85,0.33,-1.25]].forEach(p => {
+      const wh = new THREE.Mesh(tireGeo, tireMat);
       wh.rotation.z = Math.PI/2;
       wh.position.set(p[0],p[1],p[2]);
       wh.castShadow = true;
-      group.add(wh);
+      const rim = new THREE.Mesh(rimGeo, rimMat);
+      rim.rotation.z = Math.PI/2;
+      rim.position.copy(wh.position);
+      group.add(wh, rim);
     });
 
-    const headlightL = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,8), lightMat);
-    headlightL.position.set(-0.55,0.55,1.88);
+    const headlightL = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.12,0.05), lightMat);
+    headlightL.position.set(-0.55,0.62,1.9);
     const headlightR = headlightL.clone(); headlightR.position.x = 0.55;
+    const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.16,0.14,0.05), tailMat);
+    tailL.position.set(-0.58,0.62,-1.9);
+    const tailR = tailL.clone(); tailR.position.x = 0.58;
+    const grille = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.16,0.04), grilleMat);
+    grille.position.set(0,0.46,1.91);
     const bumperF = new THREE.Mesh(new THREE.BoxGeometry(1.75,0.18,0.2), bumperMat);
     bumperF.position.set(0,0.32,1.9);
     const bumperB = bumperF.clone(); bumperB.position.z = -1.9;
 
-    group.add(base, cabin, windshield, headlightL, headlightR, bumperF, bumperB);
+    [base, hood, trunk, cabin].forEach(m => m.castShadow = true);
+    group.add(base, hood, trunk, cabin, windshield, rearGlass, winL, winR, mirrorL, mirrorR,
+      headlightL, headlightR, tailL, tailR, grille, bumperF, bumperB);
     group.position.set(x, 0, z);
     group.rotation.y = rotY;
     scene.add(group);
@@ -428,10 +561,50 @@
   }
 
   // ---------- 3D grass covering the fields ----------
-  const grassMat = new THREE.MeshStandardMaterial({ color:0x6a9a45, roughness:0.9, side:THREE.DoubleSide });
-  const grassGeo = new THREE.PlaneGeometry(0.09, 0.38);
-  grassGeo.translate(0, 0.19, 0);
-  const GRASS_COUNT = 5000;
+  // each instance is a small cross-planed tuft (2 tapered, forward-bent blades
+  // crossed at 90°) instead of one flat rectangle, so it reads as grass from
+  // every angle instead of vanishing edge-on
+  function makeGrassTuftGeometry(){
+    function bladeVerts(rotY){
+      const pts = [
+        [-0.05, 0, 0], [0.05, 0, 0],
+        [-0.022, 0.22, 0.05], [0.022, 0.22, 0.05],
+        [0, 0.4, 0.09]
+      ];
+      const cos = Math.cos(rotY), sin = Math.sin(rotY);
+      return pts.map(([x,y,z]) => [x*cos - z*sin, y, x*sin + z*cos]);
+    }
+    const pos = [], col = [];
+    const dark = [0.28, 0.42, 0.16], light = [0.62, 0.82, 0.38];
+    function pushTri(a,b,c, ca,cb,cc){ pos.push(...a,...b,...c); col.push(...ca,...cb,...cc); }
+    [0, Math.PI/2].forEach(rot => {
+      const [baseL, baseR, midL, midR, tip] = bladeVerts(rot);
+      const cBase = dark, cMid = [(dark[0]+light[0])/2,(dark[1]+light[1])/2,(dark[2]+light[2])/2], cTip = light;
+      pushTri(baseL, baseR, midR, cBase, cBase, cMid);
+      pushTri(baseL, midR, midL, cBase, cMid, cMid);
+      pushTri(midL, midR, tip, cMid, cMid, cTip);
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+    geo.computeVertexNormals();
+    return geo;
+  }
+  const grassGeo = makeGrassTuftGeometry();
+  const grassWind = { uTime: { value: 0 } };
+  const grassMat = new THREE.MeshStandardMaterial({ color:0xffffff, vertexColors:true, roughness:0.85, side:THREE.DoubleSide });
+  grassMat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = grassWind.uTime;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>',
+        '#include <begin_vertex>\n' +
+        'float windW = position.y * 2.5;\n' +
+        'float windPhase = uTime * 1.6 + (instanceMatrix[3].x + instanceMatrix[3].z) * 0.6;\n' +
+        'transformed.x += sin(windPhase) * 0.09 * windW;\n' +
+        'transformed.z += cos(windPhase * 0.8) * 0.05 * windW;');
+  };
+  const GRASS_COUNT = 3200;
   const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, GRASS_COUNT);
   const gDummy = new THREE.Object3D();
   let gPlaced = 0, gTries = 0;
@@ -443,13 +616,17 @@
     if(houses.some(h => Math.hypot(x-h.x, z-h.z) < h.footprint)) continue;
     gDummy.position.set(x, 0, z);
     gDummy.rotation.y = Math.random() * Math.PI;
-    const s = 0.7 + Math.random()*0.7;
+    const s = 0.85 + Math.random()*0.8;
     gDummy.scale.set(s, s*(0.8+Math.random()*0.5), s);
     gDummy.updateMatrix();
     grassMesh.setMatrixAt(gPlaced, gDummy.matrix);
+    const tint = 0.85 + Math.random()*0.3;
+    grassMesh.setColorAt(gPlaced, new THREE.Color(tint, tint, tint * (0.92 + Math.random()*0.16)));
     gPlaced++;
   }
   grassMesh.count = gPlaced;
+  grassMesh.instanceMatrix.needsUpdate = true;
+  if(grassMesh.instanceColor) grassMesh.instanceColor.needsUpdate = true;
   scene.add(grassMesh);
 
   // ---------- drifting clouds ----------
@@ -482,6 +659,44 @@
     hat:[0xc9a24b,0x5a4a3a,0x8a3b3b,0x3f4a3a]
   };
 
+  // jointed leg/arm rigs (hip->upper->knee->lower->boot, shoulder->upper->elbow->forearm->hand)
+  // so villagers can be posed and, unlike the old rigid cylinders, animated with a walk cycle
+  function buildVillagerLeg(sign, pantsMat, bootMat){
+    const hip = new THREE.Group();
+    hip.position.set(sign*0.09, 0.86, 0);
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.062,0.055,0.42,7), pantsMat);
+    upper.position.y = -0.21; upper.castShadow = true;
+    hip.add(upper);
+    const knee = new THREE.Group();
+    knee.position.y = -0.42;
+    hip.add(knee);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.042,0.38,7), pantsMat);
+    lower.position.y = -0.19; lower.castShadow = true;
+    knee.add(lower);
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(0.075,0.07,0.15), bootMat);
+    boot.position.set(0,-0.395,0.02); boot.castShadow = true;
+    knee.add(boot);
+    return { hip, upper, knee, lower, boot };
+  }
+  function buildVillagerArm(sign, shirtMat, skinMatV){
+    const shoulder = new THREE.Group();
+    shoulder.position.set(sign*0.21, 1.22, 0);
+    shoulder.rotation.z = sign*0.12;
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.045,0.28,7), shirtMat);
+    upper.position.y = -0.14; upper.castShadow = true;
+    shoulder.add(upper);
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.28;
+    shoulder.add(elbow);
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.042,0.036,0.24,7), skinMatV);
+    forearm.position.y = -0.12; forearm.castShadow = true;
+    elbow.add(forearm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.048,8,8), skinMatV);
+    hand.position.y = -0.25; hand.castShadow = true;
+    elbow.add(hand);
+    return { shoulder, upper, elbow, forearm, hand };
+  }
+
   function buildVillager(){
     const group = new THREE.Group();
     const skinC = pick(villagerPalette.skin);
@@ -490,45 +705,72 @@
     const pantsMat = new THREE.MeshStandardMaterial({ color: pick(villagerPalette.pants), roughness:0.85 });
     const beltMat = new THREE.MeshStandardMaterial({ color:0x2a2016, roughness:0.7 });
     const hatMat = new THREE.MeshStandardMaterial({ color: pick(villagerPalette.hat), roughness:0.8 });
+    const bootMat = new THREE.MeshStandardMaterial({ color:0x241d16, roughness:0.8 });
+    const hairMat = new THREE.MeshStandardMaterial({ color: pick([0x2a1e16,0x4a3624,0x171310,0x6b4a2c]), roughness:0.7 });
 
-    const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.065,0.82,6), pantsMat);
-    legL.position.set(-0.09, 0.41, 0);
-    const legR = legL.clone(); legR.position.x = 0.09;
+    const legInfoL = buildVillagerLeg(-1, pantsMat, bootMat);
+    const legInfoR = buildVillagerLeg(1, pantsMat, bootMat);
+    const armInfoL = buildVillagerArm(-1, shirtMat, skinMatV);
+    const armInfoR = buildVillagerArm(1, shirtMat, skinMatV);
 
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36,0.46,0.22), shirtMat);
-    torso.position.set(0, 1.05, 0);
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.36,0.3,0.22), shirtMat);
+    torso.position.set(0, 1.18, 0);
+    const waist = new THREE.Mesh(new THREE.BoxGeometry(0.32,0.18,0.2), shirtMat);
+    waist.position.set(0, 0.97, 0);
+    const collar = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.05,0.24), beltMat);
+    collar.position.set(0, 1.32, 0);
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.05,0.22), beltMat);
+    belt.position.set(0, 0.86, 0);
 
-    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.38,0.05,0.24), beltMat);
-    belt.position.set(0, 0.83, 0);
-
-    const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.042,0.05,0.5,6), shirtMat);
-    armL.position.set(-0.23, 1.06, 0); armL.rotation.z = 0.18;
-    const armR = armL.clone(); armR.position.x = 0.23; armR.rotation.z = -0.18;
-
-    const handL = new THREE.Mesh(new THREE.SphereGeometry(0.05,8,8), skinMatV);
-    handL.position.set(-0.29, 0.82, 0);
-    const handR = handL.clone(); handR.position.x = 0.29;
-
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,6), skinMatV);
-    neck.position.set(0, 1.32, 0);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.05,0.08,8), skinMatV);
+    neck.position.set(0, 1.4, 0);
 
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.15,12,12), skinMatV);
-    head.position.set(0, 1.45, 0);
+    head.position.set(0, 1.53, 0);
+    const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.13,10,10), skinMatV);
+    jaw.position.set(0, 1.48, 0.02); jaw.scale.set(0.92,0.72,0.92);
+
+    const earGeo = new THREE.SphereGeometry(0.028,6,6);
+    const earL = new THREE.Mesh(earGeo, skinMatV); earL.position.set(-0.148,1.53,0);
+    const earR = earL.clone(); earR.position.x = 0.148;
 
     const eyeMat = new THREE.MeshStandardMaterial({ color:0x1a140f });
-    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.016,6,6), eyeMat);
-    eyeL.position.set(-0.05, 1.47, 0.135);
-    const eyeR = eyeL.clone(); eyeR.position.x = 0.05;
+    const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.017,6,6), eyeMat);
+    eyeL.position.set(-0.052, 1.55, 0.14);
+    const eyeR = eyeL.clone(); eyeR.position.x = 0.052;
+    const browMat = new THREE.MeshStandardMaterial({ color:0x241a12 });
+    const browL = new THREE.Mesh(new THREE.BoxGeometry(0.045,0.01,0.012), browMat);
+    browL.position.set(-0.052,1.585,0.142);
+    const browR = browL.clone(); browR.position.x = 0.052;
     const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.012,0.01), new THREE.MeshStandardMaterial({ color:0x7a3f3f }));
-    mouth.position.set(0, 1.41, 0.147);
+    mouth.position.set(0, 1.49, 0.147);
 
-    const hat = new THREE.Mesh(new THREE.SphereGeometry(0.155,10,10,0,Math.PI*2,0,Math.PI/2), hatMat);
-    hat.position.set(0, 1.47, 0); hat.scale.set(1,0.7,1);
+    const wearHat = Math.random() < 0.6;
+    if(wearHat){
+      const hat = new THREE.Mesh(new THREE.SphereGeometry(0.157,10,10,0,Math.PI*2,0,Math.PI/2), hatMat);
+      hat.position.set(0, 1.55, 0); hat.scale.set(1,0.65,1); hat.castShadow = true;
+      const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.02,14), hatMat);
+      brim.position.set(0,1.475,0);
+      group.add(hat, brim);
+    } else {
+      const hair = new THREE.Mesh(new THREE.SphereGeometry(0.153,10,10,0,Math.PI*2,0,Math.PI/1.9), hairMat);
+      hair.position.set(0,1.545,-0.005); hair.scale.set(1,0.75,1.02); hair.castShadow = true;
+      group.add(hair);
+    }
 
-    [legL,legR,torso,belt,armL,armR,handL,handR,neck,head,hat].forEach(m => m.castShadow = true);
-    group.add(legL,legR,torso,belt,armL,armR,handL,handR,neck,head,eyeL,eyeR,mouth,hat);
+    [torso,waist,collar,belt,neck,head,jaw].forEach(m => m.castShadow = true);
+    group.add(
+      legInfoL.hip, legInfoR.hip, armInfoL.shoulder, armInfoR.shoulder,
+      torso, waist, collar, belt, neck, head, jaw, earL, earR, eyeL, eyeR, browL, browR, mouth
+    );
 
-    return { group, head, torso, legL, legR, skinC };
+    return {
+      group, head, torso,
+      legL: legInfoL.upper, legR: legInfoR.upper,
+      legGroupL: legInfoL.hip, legGroupR: legInfoR.hip,
+      armGroupL: armInfoL.shoulder, armGroupR: armInfoR.shoulder,
+      skinC
+    };
   }
 
   const npcs = [];    // villagers
@@ -547,6 +789,9 @@
 
     const npc = {
       group: v.group, head: v.head, torso: v.torso, legL: v.legL, legR: v.legR,
+      legGroupL: v.legGroupL, legGroupR: v.legGroupR,
+      armGroupL: v.armGroupL, armGroupR: v.armGroupR,
+      walkPhase: Math.random()*Math.PI*2, walkAmp: 0,
       skinColor: v.skinC, torsoColor: v.torso.material.color.clone(),
       house, home, hp:3, maxHp:3, alive:true,
       state:'wander', wanderTarget: home.clone(), pauseUntil: 0,
@@ -596,6 +841,7 @@
         continue;
       }
 
+      let moving = false;
       if(npc.state === 'flee'){
         const target = npc.house.hideSpot;
         const dir = target.clone().sub(npc.group.position); dir.y = 0;
@@ -608,6 +854,7 @@
           dir.normalize();
           npc.group.position.addScaledVector(dir, NPC_FLEE_SPEED * dt);
           npc.group.rotation.y = Math.atan2(dir.x, dir.z);
+          moving = true;
         }
       } else if(npc.state === 'hidden'){
         if(now >= npc.hideUntil){
@@ -628,8 +875,20 @@
           dir.normalize();
           npc.group.position.addScaledVector(dir, NPC_WANDER_SPEED * dt);
           npc.group.rotation.y = Math.atan2(dir.x, dir.z);
+          moving = true;
         }
       }
+
+      // walk-cycle: swing legs/arms while actually moving, settle back to a
+      // relaxed stand when idle instead of sliding around like a statue
+      const targetAmp = moving ? (npc.state === 'flee' ? 1.3 : 1) : 0;
+      npc.walkAmp += (targetAmp - npc.walkAmp) * Math.min(1, dt*6);
+      if(moving) npc.walkPhase += dt * (npc.state === 'flee' ? 11 : 7);
+      const swing = Math.sin(npc.walkPhase) * 0.55 * npc.walkAmp;
+      npc.legGroupL.rotation.x = swing;
+      npc.legGroupR.rotation.x = -swing;
+      npc.armGroupL.rotation.x = -swing*0.7;
+      npc.armGroupR.rotation.x = swing*0.7;
     }
   }
 
@@ -646,74 +905,163 @@
   const skinMat = new THREE.MeshStandardMaterial({ color:0xdfa878, roughness:0.7 });
   const sleeveMat = new THREE.MeshStandardMaterial({ color:0x3d6fd9, roughness:0.85 });
 
+  // light-machine-gun style viewmodel: stepped receiver, perforated barrel
+  // shroud with a gas tube, banana-curved magazine, folded bipod, shaped
+  // stock with a buttpad — reads as a real weapon instead of a plain block
   function buildGun(){
     const g = new THREE.Group();
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.078, 0.088, 0.23), gunMat);
-    frame.position.set(0, 0, -0.02);
-    const frameFront = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.062, 0.17), gunMat);
-    frameFront.position.set(0, 0.006, -0.19);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.02, 0.23, 8), gunMat2);
-    barrel.rotation.x = Math.PI/2;
-    barrel.position.set(0, 0.013, -0.37);
-    const railTop = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.014, 0.22), gunMat2);
-    railTop.position.set(0, 0.052, -0.06);
-    const sightPost = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.03, 0.012), gunMat2);
-    sightPost.position.set(0, 0.07, -0.46);
-    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.17, 0.048), gunMat2);
-    mag.position.set(0, -0.13, 0.06);
-    mag.rotation.x = 0.15;
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.17, 0.052), gunMat);
-    grip.position.set(0, -0.115, -0.065);
-    grip.rotation.x = -0.28;
-    const foregrip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.09, 0.032), gunMat2);
-    foregrip.position.set(0, -0.075, -0.27);
-    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.036, 0.052, 0.13), gunMat);
-    stock.position.set(0, -0.004, 0.19);
-    const bolt = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.046, 0.095), gunMat2);
-    const boltBaseZ = 0.095;
-    bolt.position.set(0, 0.062, boltBaseZ);
 
-    [frame, frameFront, barrel, railTop, sightPost, mag, grip, foregrip, stock, bolt].forEach(m => m.castShadow = true);
-    g.add(frame, frameFront, barrel, railTop, sightPost, mag, grip, foregrip, stock, bolt);
+    const receiverUpper = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.28), gunMat);
+    receiverUpper.position.set(0, 0.018, -0.03);
+    const receiverLower = new THREE.Mesh(new THREE.BoxGeometry(0.066, 0.05, 0.2), gunMat2);
+    receiverLower.position.set(0, -0.035, -0.01);
+
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.017, 0.34, 10), gunMat2);
+    barrel.rotation.x = Math.PI/2;
+    barrel.position.set(0, 0.012, -0.42);
+
+    const shroud = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.03, 0.24, 10, 1, true), gunMat);
+    shroud.rotation.x = Math.PI/2;
+    shroud.position.set(0, 0.012, -0.3);
+    const vents = [];
+    for(let i=0;i<5;i++){
+      const vent = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.006, 0.2), gunMat2);
+      const a = (i/5) * Math.PI * 2;
+      vent.position.set(Math.sin(a)*0.029, 0.012 + Math.cos(a)*0.029, -0.3);
+      vent.rotation.z = a;
+      vents.push(vent);
+    }
+    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.008,0.26,8), gunMat2);
+    gasTube.rotation.x = Math.PI/2;
+    gasTube.position.set(0, 0.045, -0.3);
+
+    const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.05,0.016), gunMat2);
+    frontSightBase.position.set(0, 0.058, -0.53);
+    const sightEarL = new THREE.Mesh(new THREE.BoxGeometry(0.006,0.03,0.02), gunMat2);
+    sightEarL.position.set(-0.016, 0.07, -0.53);
+    const sightEarR = sightEarL.clone(); sightEarR.position.x = 0.016;
+    const rearSight = new THREE.Mesh(new THREE.BoxGeometry(0.024,0.018,0.014), gunMat2);
+    rearSight.position.set(0, 0.058, -0.15);
+
+    // banana-curved magazine: three stacked, progressively angled segments
+    const mag = new THREE.Group();
+    const magSegGeo = new THREE.BoxGeometry(0.034, 0.09, 0.05);
+    const magBaseY = -0.1;
+    for(let i=0;i<3;i++){
+      const seg = new THREE.Mesh(magSegGeo, gunMat2);
+      seg.position.set(0, -i*0.085, 0.045 + i*0.03);
+      seg.rotation.x = -0.13 * i;
+      seg.castShadow = true;
+      mag.add(seg);
+    }
+    mag.position.set(0, magBaseY, 0.03);
+    mag.rotation.x = 0.08;
+
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.16, 0.05), gunMat);
+    grip.position.set(0, -0.11, -0.06);
+    grip.rotation.x = -0.3;
+    const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.01,0.028,0.012), gunMat2);
+    trigger.position.set(0,-0.035,-0.06);
+    const triggerGuard = new THREE.Mesh(new THREE.TorusGeometry(0.026,0.005,6,10,Math.PI), gunMat2);
+    triggerGuard.rotation.z = Math.PI/2;
+    triggerGuard.position.set(0,-0.045,-0.06);
+
+    const foregrip = new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.02,0.08,8), gunMat2);
+    foregrip.position.set(0, -0.06, -0.24);
+
+    const bipodL = new THREE.Mesh(new THREE.CylinderGeometry(0.005,0.005,0.16,6), gunMat2);
+    bipodL.position.set(-0.03, -0.005, -0.3); bipodL.rotation.z = 0.25;
+    const bipodR = bipodL.clone(); bipodR.position.x = 0.03; bipodR.rotation.z = -0.25;
+
+    const stockBody = new THREE.Mesh(new THREE.BoxGeometry(0.038,0.06,0.16), gunMat);
+    stockBody.position.set(0, -0.006, 0.21);
+    const stockComb = new THREE.Mesh(new THREE.BoxGeometry(0.03,0.02,0.1), gunMat);
+    stockComb.position.set(0, 0.026, 0.19);
+    const buttpad = new THREE.Mesh(new THREE.BoxGeometry(0.044,0.07,0.014), gunMat2);
+    buttpad.position.set(0,-0.006,0.295);
+
+    const bolt = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.04, 0.08), gunMat2);
+    const boltBaseZ = 0.05;
+    bolt.position.set(0, 0.024, boltBaseZ);
+    const chargeHandle = new THREE.Mesh(new THREE.BoxGeometry(0.014,0.014,0.05), gunMat2);
+    chargeHandle.position.set(0.045, 0.024, 0.02);
+
+    const parts = [receiverUpper, receiverLower, barrel, shroud, ...vents, gasTube,
+      frontSightBase, sightEarL, sightEarR, rearSight, grip, trigger, triggerGuard,
+      foregrip, bipodL, bipodR, stockBody, stockComb, buttpad, bolt, chargeHandle];
+    parts.forEach(m => m.castShadow = true);
+    g.add(...parts, mag);
 
     const muzzleTip = new THREE.Object3D();
-    muzzleTip.position.set(0, 0.013, -0.48);
+    muzzleTip.position.set(0, 0.012, -0.59);
     g.add(muzzleTip);
 
-    g.userData = { barrel, bolt, boltBaseZ, mag, magBaseY: mag.position.y, muzzleTip, gripPos: new THREE.Vector3(0,-0.115,-0.065), foregripPos: new THREE.Vector3(0,-0.075,-0.27) };
+    g.userData = {
+      barrel, bolt, boltBaseZ, mag, magBaseY, muzzleTip,
+      gripPos: new THREE.Vector3(0,-0.11,-0.06), foregripPos: new THREE.Vector3(0,-0.06,-0.24)
+    };
     return g;
   }
 
-  // simple low-poly hand with separated fingers, wrapped around a grip point
+  // a finger is a hip-jointed chain (root->proximal->joint->distal->tip) so
+  // it actually bends around the grip instead of being one rigid cylinder
+  function buildFingerChain(x, z, curl1, curl2, len1, len2, rad, splayZ){
+    const root = new THREE.Group();
+    root.position.set(x, 0.03, z);
+    if(splayZ) root.rotation.z = splayZ;
+    root.rotation.x = curl1;
+    const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad*0.86, len1, 6), skinMat);
+    seg1.position.y = len1/2; seg1.castShadow = true;
+    root.add(seg1);
+    const joint = new THREE.Group();
+    joint.position.y = len1;
+    joint.rotation.x = curl2;
+    root.add(joint);
+    const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(rad*0.82, rad*0.62, len2, 6), skinMat);
+    seg2.position.y = len2/2; seg2.castShadow = true;
+    joint.add(seg2);
+    const tip = new THREE.Mesh(new THREE.SphereGeometry(rad*0.62, 6, 6), skinMat);
+    tip.position.y = len2;
+    joint.add(tip);
+    return root;
+  }
+
+  // human-like hand: a back-of-hand block, four jointed fingers, a splayed
+  // thumb, wrist and a cuffed forearm — replaces the old single-segment stubs
   function buildHand(sign, curl){
     const hand = new THREE.Group();
-    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.065, 0.035), skinMat);
-    hand.add(palm);
-    const fingerCount = 4;
-    for(let i=0;i<fingerCount;i++){
-      const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.007, 0.055, 6), skinMat);
-      finger.position.set(-0.017 + i*0.0115, 0.05, 0.006);
-      finger.rotation.x = curl;
-      finger.castShadow = true;
-      hand.add(finger);
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.032), skinMat);
+    back.position.set(0, 0.012, 0);
+    back.castShadow = true;
+    hand.add(back);
+
+    const c1 = 0.55 + curl*0.55, c2 = 0.7 + curl*0.75;
+    const xs = [-0.019, -0.0065, 0.0065, 0.019];
+    for(let i=0;i<4;i++){
+      hand.add(buildFingerChain(xs[i], 0.008, c1, c2, 0.032, 0.024, 0.0075));
     }
-    const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.007, 0.045, 6), skinMat);
-    thumb.position.set(sign*0.03, 0.01, -0.012);
-    thumb.rotation.z = sign*1.0;
-    thumb.rotation.x = 0.3;
-    thumb.castShadow = true;
-    hand.add(thumb);
-    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.22, 8), sleeveMat);
-    forearm.position.set(0, -0.14, 0);
-    forearm.castShadow = true;
+    hand.add(buildFingerChain(sign*0.026, -0.006, sign*0.9, 0.7, 0.026, 0.02, 0.008, sign*0.9));
+
+    const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.033, 0.05, 8), skinMat);
+    wrist.position.set(0, -0.045, 0); wrist.castShadow = true;
+    hand.add(wrist);
+
+    const cuff = new THREE.Mesh(new THREE.TorusGeometry(0.032, 0.008, 6, 10), sleeveMat);
+    cuff.position.set(0, -0.075, 0); cuff.rotation.x = Math.PI/2;
+    hand.add(cuff);
+
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.032, 0.2, 8), sleeveMat);
+    forearm.position.set(0, -0.18, 0); forearm.castShadow = true;
     hand.add(forearm);
-    palm.castShadow = true;
+
     return hand;
   }
 
   const gun = buildGun();
-  const gunRestPos = new THREE.Vector3(0.16, -0.17, -0.32);   // hip position (off to the side)
-  const gunAimPos  = new THREE.Vector3(0.0, -0.075, -0.22);   // centered, raised to eye line
+  gun.scale.setScalar(0.72); // the fuller LMG model is longer than the old gun; scale it back
+                              // down so it doesn't dominate the screen or poke past the near plane
+  const gunRestPos = new THREE.Vector3(0.16, -0.17, -0.34);   // hip position (off to the side)
+  const gunAimPos  = new THREE.Vector3(0.0, -0.075, -0.26);   // centered, raised to eye line
   gun.position.copy(gunRestPos);
   camera.add(gun);
   const gunBarrel = gun.userData.barrel;
@@ -1475,6 +1823,7 @@
     updateDust(dt);
     updateScorch();
     updateClouds(dt);
+    grassWind.uTime.value += dt;
 
     // ---- aiming animation: smoothly raise the gun/head to the sight ----
     const targetAimT = aiming ? 1 : 0;
