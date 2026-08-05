@@ -258,8 +258,12 @@
   </div>
 </div>
 
-<script src="vendor/three.min.js"></script>
-<script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { FBXLoader } from './vendor/jsm/loaders/FBXLoader.js';
 (function(){
   const canvas = document.getElementById('gameCanvas');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
@@ -604,7 +608,7 @@
         'transformed.x += sin(windPhase) * 0.09 * windW;\n' +
         'transformed.z += cos(windPhase * 0.8) * 0.05 * windW;');
   };
-  const GRASS_COUNT = 3200;
+  const GRASS_COUNT = 9000;
   const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, GRASS_COUNT);
   const gDummy = new THREE.Object3D();
   let gPlaced = 0, gTries = 0;
@@ -997,7 +1001,7 @@
     g.add(muzzleTip);
 
     g.userData = {
-      barrel, bolt, boltBaseZ, mag, magBaseY, muzzleTip,
+      barrel, bolt, boltBaseZ, mag, magBaseY, muzzleTip, parts,
       gripPos: new THREE.Vector3(0,-0.11,-0.06), foregripPos: new THREE.Vector3(0,-0.06,-0.24)
     };
     return g;
@@ -1074,6 +1078,36 @@
   rightHand.rotation.set(-0.25, 0, 0);
   leftHand.position.copy(gun.userData.foregripPos).add(new THREE.Vector3(0, 0.03, 0));
   leftHand.rotation.set(-0.15, 0, 0);
+
+  // ---------- swap in a real, CC-BY licensed M60 model once it loads -------
+  // (procedural parts stay in the scene graph, just hidden — their transforms
+  // keep driving the reload/bolt animation math harmlessly in the background)
+  const M60_SCALE = 0.0055;
+  const m60Group = new THREE.Group();
+  m60Group.position.set(-0.01, -0.067, -0.086); // shifts the model's grip area to the gun's local origin
+  gun.add(m60Group);
+  new FBXLoader().load('vendor/models/m60.fbx', (obj) => {
+    // the source FBX carries the original scene's studio lights baked in as
+    // real nodes — FBXLoader instantiates them as actual THREE lights (at
+    // roughly 10-100x our scene's intensity scale), which blows every
+    // material in the game out to white. Strip them before attaching.
+    const lights = [];
+    obj.traverse((n) => { if (n.isLight) lights.push(n); });
+    lights.forEach((l) => l.parent && l.parent.remove(l));
+
+    const albedo = new THREE.TextureLoader().load('vendor/models/m60_albedo.jpg');
+    const roughMap = new THREE.TextureLoader().load('vendor/models/m60_rough.jpg');
+    obj.traverse((n) => {
+      if (n.isMesh) {
+        n.material = new THREE.MeshStandardMaterial({ map: albedo, roughnessMap: roughMap, roughness: 1, metalness: 0.25 });
+        n.castShadow = true;
+      }
+    });
+    obj.scale.setScalar(M60_SCALE);
+    m60Group.add(obj);
+    gun.userData.parts.forEach(m => { m.visible = false; });
+    gun.userData.mag.visible = false;
+  }, undefined, (err) => { console.warn('M60 model failed to load, keeping procedural gun', err); });
 
   // ---------- camera / look state ----------
   let yaw = 0;
@@ -1476,12 +1510,20 @@
     scoreEl.textContent = '🎯 ' + score;
   }
 
-  // ---------- gunshot sound: one fixed sample reused every shot (stable, identical,
-  // punchy machine-gun report each time) ----------
+  // ---------- gunshot + footstep sound ----------
+  // a real recorded LMG shot and footstep samples are loaded async; a synthesized
+  // buffer is used as an instant placeholder for the very first shot or two in
+  // case the real sample hasn't finished loading/decoding yet
   let audioCtx = null;
   let sharedShotBuffer = null;
+  let footstepBuffers = [];
+  const FOOTSTEP_FILES = ['footstep00','footstep01','footstep02','footstep03','footstep04'];
 
-  function buildShotBuffer(){
+  function loadSound(url){
+    return fetch(url).then(r => r.arrayBuffer()).then(buf => audioCtx.decodeAudioData(buf));
+  }
+
+  function buildShotBufferFallback(){
     const dur = 0.18;
     const size = Math.floor(audioCtx.sampleRate * dur);
     sharedShotBuffer = audioCtx.createBuffer(1, size, audioCtx.sampleRate);
@@ -1518,7 +1560,10 @@
   function ensureAudio(){
     if(audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    buildShotBuffer();
+    buildShotBufferFallback();
+    loadSound('vendor/audio/shot.mp3').then(buf => { sharedShotBuffer = buf; }).catch(() => {});
+    Promise.all(FOOTSTEP_FILES.map(n => loadSound('vendor/audio/' + n + '.mp3').catch(() => null)))
+      .then(bufs => { footstepBuffers = bufs.filter(Boolean); });
   }
 
   // mobile browsers only allow starting/resuming audio from inside a direct user
@@ -1537,19 +1582,42 @@
     try{
       ensureAudio();
       if(audioCtx.state === 'suspended') audioCtx.resume();
+      if(!sharedShotBuffer) return; // fallback buffer still being built on the very first call
       const now = audioCtx.currentTime;
       const src = audioCtx.createBufferSource();
       src.buffer = sharedShotBuffer;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(3800, now); // cuts the hissy top end so it's a "bang", not a squeak
-      filter.frequency.exponentialRampToValueAtTime(250, now + 0.16);
+      src.playbackRate.value = 0.97 + Math.random()*0.06; // tiny variation so rapid fire doesn't sound like one sample on repeat
       const gain = audioCtx.createGain();
       gain.gain.setValueAtTime(0.8, now); // loud, punchy — reads clearly as a firearm report
-      src.connect(filter).connect(gain).connect(audioCtx.destination);
+      src.connect(gain).connect(audioCtx.destination);
       src.start(now);
-      src.stop(now + 0.19);
     }catch(e){ /* ignore if audio unavailable */ }
+  }
+
+  function playFootstepSound(){
+    if(footstepBuffers.length === 0) return; // not loaded yet
+    try{
+      ensureAudio();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const src = audioCtx.createBufferSource();
+      src.buffer = footstepBuffers[Math.floor(Math.random()*footstepBuffers.length)];
+      src.playbackRate.value = 0.9 + Math.random()*0.2;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(isSprinting ? 0.55 : 0.4, now);
+      src.connect(gain).connect(audioCtx.destination);
+      src.start(now);
+    }catch(e){ /* ignore if audio unavailable */ }
+  }
+
+  let footstepPhase = 0;
+  function updateFootsteps(dt){
+    if(isMovingNow && grounded){
+      footstepPhase += dt * (isSprinting ? 3.4 : 2.1);
+      if(footstepPhase >= 1){ footstepPhase -= 1; playFootstepSound(); }
+    } else {
+      footstepPhase = 0;
+    }
   }
 
 
@@ -1815,6 +1883,7 @@
     player.position.x = Math.max(-190, Math.min(190, player.position.x));
     player.position.z = Math.max(-190, Math.min(190, player.position.z));
 
+    updateFootsteps(dt);
     updateBullets(dt);
     updateSmoke(dt);
     updateMuzzleFlashes();
