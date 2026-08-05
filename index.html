@@ -210,11 +210,19 @@
   const marksCollection = collection(db, "marks");
 
   // ---- Карта ----
-  const map = L.map('map').setView([50.4501, 30.5234], 7); // старт: Украина, можно поменять
+  // Область: Донецкая, Луганская, Запорожская
+  const REGION_BOUNDS = L.latLngBounds([46.0, 34.0], [49.8, 40.2]);
+
+  const map = L.map('map', {
+    maxBounds: REGION_BOUNDS.pad(0.1),
+    maxBoundsViscosity: 0.8
+  });
+  map.fitBounds(REGION_BOUNDS);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors',
-    maxZoom: 19
+    maxZoom: 19,
+    minZoom: 7
   }).addTo(map);
 
   const STALE_HOURS = 12; // через сколько часов без подтверждений отметка считается неактуальной
