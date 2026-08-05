@@ -93,6 +93,33 @@
   }
   .legend.open { display: block; }
 
+  .geoloc-toggle {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: #2a2e37e0;
+    border: 1px solid #3a3f4a;
+    color: #e8e8e8;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+  }
+  .geoloc-toggle.on {
+    background: #1d4ed8e0;
+    border-color: #1e40af;
+    color: white;
+  }
+  .my-location-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #1d4ed8;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 4px rgba(29,78,216,0.35);
+  }
   .bottom-actions {
     position: fixed;
     left: 50%;
@@ -441,6 +468,8 @@
     <div><span class="dot" style="background:#a855f7"></span>Другое</div>
   </div>
 
+  <button class="geoloc-toggle" id="geolocToggle">📡 Геолокация: выкл</button>
+
   <div class="bottom-actions">
     <button class="geo-toggle" id="geoMarkBtn">📍 Отметить здесь</button>
     <button class="sos-toggle" id="sosBtn">🚨 Тревога</button>
@@ -573,12 +602,9 @@
     }, wait);
   });
 
-  // Запрашиваем доступ к геолокации сразу при открытии сайта,
-  // чтобы дальше кнопки "Отметить здесь" и "Тревога" срабатывали мгновенно,
-  // без повторного запроса разрешения у браузера.
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, timeout: 8000 });
-  }
+  // Геолокация запрашивается только по явному нажатию кнопки (см. ниже) —
+  // автоматический запрос при загрузке страницы многие браузеры (особенно Android)
+  // расценивают как подозрительный и молча блокируют повторные запросы.
 
   const STALE_HOURS = 12; // через сколько часов без подтверждений отметка считается неактуальной
 
@@ -790,6 +816,71 @@
     overlay.classList.remove('open');
     document.getElementById('markComment').value = '';
     pendingLatLng = null;
+  });
+
+  // ---- Переключатель геолокации (моё местоположение на карте) ----
+  const geolocToggle = document.getElementById('geolocToggle');
+  let geolocWatchId = null;
+  let myLocationMarker = null;
+  let geolocOn = false;
+
+  function turnGeolocOff() {
+    if (geolocWatchId !== null) {
+      navigator.geolocation.clearWatch(geolocWatchId);
+      geolocWatchId = null;
+    }
+    if (myLocationMarker) {
+      map.removeLayer(myLocationMarker);
+      myLocationMarker = null;
+    }
+    geolocOn = false;
+    geolocToggle.textContent = '📡 Геолокация: выкл';
+    geolocToggle.classList.remove('on');
+  }
+
+  function turnGeolocOn() {
+    if (!navigator.geolocation) {
+      alert('Геолокация не поддерживается этим браузером.');
+      return;
+    }
+    geolocToggle.textContent = '📡 Определяю...';
+    geolocWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        geolocOn = true;
+        geolocToggle.textContent = '📡 Геолокация: вкл';
+        geolocToggle.classList.add('on');
+        const latlng = [pos.coords.latitude, pos.coords.longitude];
+        if (myLocationMarker) {
+          myLocationMarker.setLatLng(latlng);
+        } else {
+          const icon = L.divIcon({
+            className: '',
+            html: '<div class="my-location-dot"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          });
+          myLocationMarker = L.marker(latlng, { icon, zIndexOffset: 500 }).addTo(map);
+        }
+      },
+      (err) => {
+        geolocToggle.textContent = '📡 Геолокация: выкл';
+        geolocOn = false;
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('Доступ к геолокации заблокирован в браузере.\n\nНа Android: откройте настройки сайта (значок замка/(i) рядом с адресом) → Разрешения → Геолокация → Разрешить, затем обновите страницу.');
+        } else {
+          alert('Не удалось определить местоположение.');
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  geolocToggle.addEventListener('click', () => {
+    if (geolocOn) {
+      turnGeolocOff();
+    } else {
+      turnGeolocOn();
+    }
   });
 
   // ---- Быстрая метка по геолокации ----
