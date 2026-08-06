@@ -116,6 +116,7 @@
     position: fixed;
     bottom: calc(50% + 24px);
     left: 12px;
+    max-width: 230px;
     background: rgba(20,9,10,.92);
     border: 1px solid var(--panel-border);
     border-radius: 10px;
@@ -128,6 +129,7 @@
   .legend.open { display: block; }
 
   .theme-toggle {
+    position: relative;
     width: 62px;
     height: 32px;
     border-radius: 20px;
@@ -219,8 +221,8 @@
 
   /* Меню (гамбургер) и кнопка информации */
   .menu-toggle, .info-toggle {
-    position: fixed;
-    top: 12px;
+    position: absolute;
+    top: 54px;
     width: 38px;
     height: 38px;
     border-radius: 50%;
@@ -238,8 +240,8 @@
   .info-toggle { right: 12px; }
 
   .menu-panel {
-    position: fixed;
-    top: 56px;
+    position: absolute;
+    top: 98px;
     left: 12px;
     width: 220px;
     background: rgba(20,9,10,.96);
@@ -263,9 +265,6 @@
   .menu-row span.menu-label {
     font-size: 13px;
     color: #f0e0e0;
-  }
-  .menu-panel .theme-toggle {
-    position: static;
   }
   .menu-nick-btn {
     width: 100%;
@@ -462,6 +461,69 @@
     border: 1.5px solid rgba(255,140,40,.7);
     box-shadow: 0 0 12px rgba(255,90,0,.6);
   }
+  .mine-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg,#3a2e0a,#150f00);
+    border: 1.5px solid rgba(220,180,60,.7);
+    box-shadow: 0 0 10px rgba(220,180,60,.5);
+  }
+  .mine-toggle {
+    position: fixed;
+    top: calc(50% + 140px);
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 13px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    color: #f0e0e0;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .mine-toggle.active {
+    background: linear-gradient(180deg,#8a6d1e,#4a3a0f);
+    border-color: rgba(220,180,60,.7);
+    color: white;
+    box-shadow: 0 0 18px rgba(220,180,60,.5);
+  }
+  .mine-toolbar {
+    position: fixed;
+    left: 50%;
+    bottom: 90px;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(20,9,10,.95);
+    border: 1px solid var(--panel-border);
+    border-radius: 26px;
+    padding: 10px 16px;
+    z-index: 950;
+    font-size: 12.5px;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  }
+  .mine-toolbar.show { display: flex; }
+  .mine-toolbar button {
+    padding: 7px 14px;
+    border-radius: 16px;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .mine-toolbar .mt-cancel { background: #2a2020; color: #e8d8d8; }
+  .mine-toolbar .mt-done { background: linear-gradient(180deg,var(--red),var(--red-dark)); color: white; }
   .legend span.dot {
     display: inline-block;
     width: 10px;
@@ -908,7 +970,7 @@
 <div id="mapWrap">
   <div id="map"></div>
 
-  <div class="notice">Не забывайте удалять неактуальное и писать время</div>
+  <div class="notice">Не забывайте удалять неактуальное</div>
 
   <button class="menu-toggle" id="menuToggle" title="Меню">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -950,6 +1012,7 @@
     <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
     <div><span class="dot" style="background:#f59e0b"></span>Повреждённая техника</div>
     <div><span class="dot" style="background:#a855f7"></span>Другое</div>
+    <div><span class="dot" style="background:#8a6d1e"></span>Мины — линия минирования, значок танковой мины. Хранится 24 часа (обычные метки — 30 минут)</div>
   </div>
 
   <button class="geoloc-toggle" id="geolocToggle">
@@ -969,6 +1032,21 @@
     </svg>
     <span id="navToggleLabel">Навигатор</span>
   </button>
+
+  <button class="mine-toggle" id="mineToggle">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
+      <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    </svg>
+    <span id="mineToggleLabel">Мины</span>
+  </button>
+
+  <div class="mine-toolbar" id="mineToolbar">
+    <span id="mineToolbarHint">Отмечайте точки на линии минирования</span>
+    <button class="mt-cancel" id="mineCancelBtn">Отмена</button>
+    <button class="mt-done" id="mineDoneBtn">Готово</button>
+  </div>
 
   <div class="sky-toast" id="skyToast">Смотри за небом!</div>
 
@@ -1101,7 +1179,10 @@
     <h2>Как пользоваться</h2>
 
     <h3>Отметки на карте</h3>
-    <p>Клик по карте — добавить отметку (БПЛА-угроза, повреждённая техника, другое). Кнопка «Отметить здесь» добавляет отметку по вашей геолокации. Отметки удаляются автоматически через 30 минут — подтверждайте или опровергайте их, чтобы карта оставалась актуальной.</p>
+    <p>Клик по карте — добавить отметку (БПЛА-угроза, повреждённая техника, другое). Кнопка «Отметить здесь» добавляет отметку по вашей геолокации. Точечные отметки удаляются автоматически через 30 минут — подтверждайте или опровергайте их, чтобы карта оставалась актуальной.</p>
+
+    <h3>Мины</h3>
+    <p>Кнопка «Мины» включает режим рисования: нажимайте на карте точки вдоль линии минирования, затем «Готово» — на карте появится полоса со значками мин. Хранится 24 часа. Удалить раньше срока может тот, кто её поставил.</p>
 
     <h3>Геолокация и навигатор</h3>
     <p>Кнопка «Геолокация» показывает вас на карте и предупреждает звуком и надписью «Внимание» при входе в опасную зону. Кнопка «Навигатор» строит маршрут до нужного населённого пункта, проверяет его на опасные участки и во время поездки следит за дорогой.</p>
@@ -1157,6 +1238,11 @@
   function setNickname(newName) {
     NICKNAME = newName;
     localStorage.setItem('nickname', NICKNAME);
+  }
+
+  // Особый ник — может удалять любые метки, не только свои
+  function isHusky() {
+    return NICKNAME.trim().toLowerCase() === 'хаски';
   }
 
   // ЗАПОЛНИТЕ СВОИМИ ДАННЫМИ ИЗ FIREBASE CONSOLE
@@ -1278,7 +1364,8 @@
   const typeMeta = {
     uav:   { color: '#dc2626', label: 'БПЛА-угроза' },
     wreck: { color: '#f59e0b', label: 'Повреждённая техника' },
-    other: { color: '#a855f7', label: 'Другое' }
+    other: { color: '#a855f7', label: 'Другое' },
+    mine:  { color: '#8a6d1e', label: 'Мины' }
   };
 
   const uavSubtypeLabels = {
@@ -1303,6 +1390,7 @@
   }
 
   const EXPIRE_MINUTES = 30; // через сколько минут отметка автоматически удаляется
+  const MINE_EXPIRE_MINUTES = 24 * 60; // мины хранятся дольше — сутки
 
   function buildPopupContent(id, data) {
     const meta = typeMeta[data.type] || typeMeta.other;
@@ -1330,9 +1418,9 @@
         <button class="btn-deny" onclick="window.__denyMark('${id}')">Не актуально</button>
       </div>`;
     }
-    if (data.ownerId === OWNER_ID) {
+    if (data.ownerId === OWNER_ID || isHusky()) {
       html += `<div class="popup-actions">
-        <button class="btn-delete" onclick="window.__deleteMark('${id}')">Удалить мою отметку</button>
+        <button class="btn-delete" onclick="window.__deleteMark('${id}')">${data.ownerId === OWNER_ID ? 'Удалить мою отметку' : 'Удалить отметку'}</button>
       </div>`;
     }
     html += `</div>`;
@@ -1398,12 +1486,35 @@
   function renderMark(id, data) {
     const meta = typeMeta[data.type] || typeMeta.other;
     if (markersById[id]) {
-      markersById[id].marker.setPopupContent(buildPopupContent(id, data));
+      if (markersById[id].marker.setPopupContent) {
+        markersById[id].marker.setPopupContent(buildPopupContent(id, data));
+      }
       return;
     }
     let marker;
     let droneMarker = null;
-    if (data.type === 'uav' && data.radius) {
+    let mineIcons = null;
+    if (data.type === 'mine' && Array.isArray(data.points) && data.points.length >= 2) {
+      marker = L.polyline(data.points, {
+        color: meta.color,
+        weight: 6,
+        dashArray: '10,8',
+        opacity: 0.95
+      }).addTo(map);
+      const mineIcon = L.divIcon({
+        className: '',
+        html: '<div class="mine-icon"><svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">' +
+          '<circle cx="12" cy="12" r="10" fill="#4a4a2e" stroke="#0a0a0a" stroke-width="1.3"/>' +
+          '<circle cx="12" cy="12" r="6.5" fill="#5c5c38" stroke="#0a0a0a" stroke-width="1"/>' +
+          '<circle cx="12" cy="12" r="2.4" fill="#dc2626"/>' +
+          '<path d="M12 1.5v2.3M12 20.2v2.3M1.5 12h2.3M20.2 12h2.3" stroke="#0a0a0a" stroke-width="1.4" stroke-linecap="round"/>' +
+          '</svg></div>',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+      mineIcons = data.points.map((p) => L.marker(p, { icon: mineIcon, interactive: false }).addTo(map));
+      marker.bindPopup(buildPopupContent(id, data));
+    } else if (data.type === 'uav' && data.radius) {
       marker = L.circle([data.lat, data.lng], {
         radius: data.radius,
         fillColor: meta.color,
@@ -1419,6 +1530,7 @@
         iconAnchor: [28, 28]
       });
       droneMarker = L.marker([data.lat, data.lng], { icon: droneIcon, interactive: false }).addTo(map);
+      marker.bindPopup(buildPopupContent(id, data));
     } else if (data.type === 'wreck') {
       const wreckIcon = L.divIcon({
         className: '',
@@ -1433,6 +1545,7 @@
         iconAnchor: [20, 15]
       });
       marker = L.marker([data.lat, data.lng], { icon: wreckIcon }).addTo(map);
+      marker.bindPopup(buildPopupContent(id, data));
     } else {
       marker = L.circleMarker([data.lat, data.lng], {
         radius: 9,
@@ -1441,9 +1554,9 @@
         weight: 2,
         fillOpacity: 0.9
       }).addTo(map);
+      marker.bindPopup(buildPopupContent(id, data));
     }
-    marker.bindPopup(buildPopupContent(id, data));
-    markersById[id] = { marker, droneMarker };
+    markersById[id] = { marker, droneMarker, mineIcons };
     dataById[id] = data;
   }
 
@@ -1456,7 +1569,8 @@
       const data = dataById[id];
       if (!data.createdAt) return;
       const ageMin = (now - data.createdAt.toDate().getTime()) / 60000;
-      if (ageMin > EXPIRE_MINUTES) {
+      const limit = data.type === 'mine' ? MINE_EXPIRE_MINUTES : EXPIRE_MINUTES;
+      if (ageMin > limit) {
         deleteDoc(doc(db, 'marks', id)).catch(() => {});
       }
     });
@@ -1471,6 +1585,7 @@
         if (markersById[id]) {
           map.removeLayer(markersById[id].marker);
           if (markersById[id].droneMarker) map.removeLayer(markersById[id].droneMarker);
+          if (markersById[id].mineIcons) markersById[id].mineIcons.forEach((m) => map.removeLayer(m));
           delete markersById[id];
         }
         delete dataById[id];
@@ -1508,6 +1623,11 @@
   });
 
   map.on('click', (e) => {
+    if (mineDrawActive) {
+      minePoints.push(e.latlng);
+      updateMinePreview();
+      return;
+    }
     pendingLatLng = e.latlng;
     modalTitle.textContent = 'Новая отметка';
     overlay.classList.add('open');
@@ -1540,6 +1660,70 @@
     overlay.classList.remove('open');
     document.getElementById('markComment').value = '';
     pendingLatLng = null;
+  });
+
+  // ---- Мины: режим рисования линии по точкам ----
+  const mineToggle = document.getElementById('mineToggle');
+  const mineToolbar = document.getElementById('mineToolbar');
+  const mineCancelBtn = document.getElementById('mineCancelBtn');
+  const mineDoneBtn = document.getElementById('mineDoneBtn');
+  let mineDrawActive = false;
+  let minePoints = [];
+  let minePreviewLine = null;
+  let minePreviewDots = [];
+
+  function updateMinePreview() {
+    if (minePreviewLine) { map.removeLayer(minePreviewLine); minePreviewLine = null; }
+    minePreviewDots.forEach((d) => map.removeLayer(d));
+    minePreviewDots = [];
+    if (minePoints.length) {
+      minePreviewLine = L.polyline(minePoints, { color: '#e0b93c', weight: 5, dashArray: '10,8', opacity: 0.95 }).addTo(map);
+      minePoints.forEach((p) => {
+        minePreviewDots.push(L.circleMarker(p, { radius: 5, color: '#fff', weight: 2, fillColor: '#e0b93c', fillOpacity: 1 }).addTo(map));
+      });
+    }
+    mineDoneBtn.disabled = minePoints.length < 2;
+    mineDoneBtn.style.opacity = minePoints.length < 2 ? 0.5 : 1;
+  }
+
+  mineToggle.addEventListener('click', () => {
+    mineDrawActive = !mineDrawActive;
+    mineToggle.classList.toggle('active', mineDrawActive);
+    if (mineDrawActive) {
+      minePoints = [];
+      updateMinePreview();
+      mineToolbar.classList.add('show');
+    } else {
+      mineToolbar.classList.remove('show');
+      minePoints = [];
+      updateMinePreview();
+    }
+  });
+
+  mineCancelBtn.addEventListener('click', () => {
+    mineDrawActive = false;
+    mineToggle.classList.remove('active');
+    mineToolbar.classList.remove('show');
+    minePoints = [];
+    updateMinePreview();
+  });
+
+  mineDoneBtn.addEventListener('click', async () => {
+    if (minePoints.length < 2) return;
+    await addDoc(marksCollection, {
+      type: 'mine',
+      points: minePoints.map((p) => [p.lat, p.lng]),
+      comment: '',
+      confirmedBy: [],
+      deniedBy: [],
+      ownerId: OWNER_ID,
+      createdAt: serverTimestamp()
+    });
+    mineDrawActive = false;
+    mineToggle.classList.remove('active');
+    mineToolbar.classList.remove('show');
+    minePoints = [];
+    updateMinePreview();
   });
 
   // ---- Оповещение о приближении к опасной зоне ----
@@ -1623,14 +1807,27 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // Универсально достаёт точки метки: для точечных меток — одна пара координат,
+  // для мин (линия) — весь массив точек линии.
+  function getMarkPoints(data) {
+    if (data.type === 'mine' && Array.isArray(data.points)) return data.points;
+    if (data.lat != null && data.lng != null) return [[data.lat, data.lng]];
+    return [];
+  }
+
   function checkProximity(coords) {
     Object.keys(dataById).forEach((id) => {
       const data = dataById[id];
-      if (!data.lat || !data.lng) return;
+      const pts = getMarkPoints(data);
+      if (!pts.length) return;
 
-      const threshold = (data.type === 'uav' && data.radius) ? data.radius : 300;
-      const dist = distanceMeters(coords.latitude, coords.longitude, data.lat, data.lng);
-      const inside = dist <= threshold;
+      const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius : 300);
+      let minDist = Infinity;
+      pts.forEach(([lat, lng]) => {
+        const d = distanceMeters(coords.latitude, coords.longitude, lat, lng);
+        if (d < minDist) minDist = d;
+      });
+      const inside = minDist <= threshold;
       const wasInside = zonesInside.has(id);
 
       if (inside && !wasInside) {
@@ -2075,10 +2272,12 @@
     const dangerMarkers = [];
     Object.keys(dataById).forEach((id) => {
       const data = dataById[id];
-      if (!data.lat || !data.lng) return;
-      const threshold = (data.type === 'uav' && data.radius) ? data.radius + 400 : 500;
-      if (distanceToRoute(data.lat, data.lng, coords) <= threshold) {
-        dangerMarkers.push(data);
+      const pts = getMarkPoints(data);
+      if (!pts.length) return;
+      const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius + 400 : 500);
+      const hit = pts.some(([lat, lng]) => distanceToRoute(lat, lng, coords) <= threshold);
+      if (hit) {
+        dangerMarkers.push({ lat: pts[0][0], lng: pts[0][1] });
       }
     });
     if (!dangerMarkers.length) return [];
