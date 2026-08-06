@@ -50,6 +50,10 @@
   .leaflet-tile-pane {
     filter: brightness(1.9) contrast(1.08) saturate(1.15);
   }
+  /* Светлая тема (обычные тайлы OpenStreetMap) в фильтре не нуждается */
+  body.light-map .leaflet-tile-pane {
+    filter: none;
+  }
   header {
     flex: 0 0 auto;
     display: flex;
@@ -110,7 +114,7 @@
   }
   .legend {
     position: fixed;
-    top: calc(50% + 44px);
+    top: calc(50% + 88px);
     left: 12px;
     background: rgba(20,9,10,.92);
     border: 1px solid var(--panel-border);
@@ -122,6 +126,51 @@
     display: none;
   }
   .legend.open { display: block; }
+
+  .theme-toggle {
+    position: fixed;
+    top: calc(50% + 38px);
+    left: 12px;
+    width: 62px;
+    height: 32px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .theme-icon {
+    position: relative;
+    z-index: 2;
+    color: #d9b8b8;
+    pointer-events: none;
+  }
+  .theme-thumb {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    box-shadow: 0 0 8px rgba(255,0,0,.5);
+    transition: transform .25s ease;
+    z-index: 1;
+  }
+  .theme-toggle.light .theme-thumb {
+    transform: translateX(30px);
+  }
+  .theme-toggle.light .theme-icon:first-of-type {
+    color: #fff;
+  }
+  .theme-toggle:not(.light) .theme-icon:last-of-type {
+    color: #fff;
+  }
 
   .geoloc-toggle {
     position: fixed;
@@ -647,6 +696,17 @@
 
   <button class="legend-toggle" id="legendToggle">Памятка</button>
 
+  <button class="theme-toggle" id="themeToggle" title="Светлая / тёмная карта">
+    <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M12 2.5v2.6M12 18.9v2.6M4.6 12H2M22 12h-2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+    <span class="theme-thumb"></span>
+    <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 13.2A9 9 0 1 1 10.8 3a7.2 7.2 0 0 0 10.2 10.2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
   <div class="legend" id="legendPanel">
     <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
     <div><span class="dot" style="background:#f59e0b"></span>Повреждённая техника</div>
@@ -815,12 +875,42 @@
   });
   map.fitBounds(REGION_BOUNDS);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  const DARK_TILES_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  const DARK_TILES_OPTS = {
     attribution: '© OpenStreetMap contributors © CARTO',
     subdomains: 'abcd',
     maxZoom: 19,
     minZoom: 7
-  }).addTo(map);
+  };
+  const LIGHT_TILES_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const LIGHT_TILES_OPTS = {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    minZoom: 7
+  };
+
+  let isLightMap = localStorage.getItem('mapTheme') === 'light';
+  let tileLayer = null;
+
+  const themeToggle = document.getElementById('themeToggle');
+
+  function applyMapTheme() {
+    document.body.classList.toggle('light-map', isLightMap);
+    themeToggle.classList.toggle('light', isLightMap);
+    if (tileLayer) map.removeLayer(tileLayer);
+    tileLayer = L.tileLayer(
+      isLightMap ? LIGHT_TILES_URL : DARK_TILES_URL,
+      isLightMap ? LIGHT_TILES_OPTS : DARK_TILES_OPTS
+    ).addTo(map);
+    localStorage.setItem('mapTheme', isLightMap ? 'light' : 'dark');
+  }
+
+  applyMapTheme(); // применяем сохранённый выбор темы сразу при загрузке
+
+  themeToggle.addEventListener('click', () => {
+    isLightMap = !isLightMap;
+    applyMapTheme();
+  });
 
   // Экран загрузки: анимированный прогресс-бар + смена статусов,
   // скрывается, как только карта отрисовалась (плюс минимум 1.2с, чтобы не мигало)
