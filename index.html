@@ -218,65 +218,6 @@
     color: white;
     box-shadow: 0 0 18px rgba(255,0,0,.4);
   }
-  .mine-toggle {
-    position: fixed;
-    top: calc(50% + 140px);
-    left: 12px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 13px;
-    border-radius: 20px;
-    background: linear-gradient(180deg,#2b0d0d,#150505);
-    border: 1px solid var(--panel-border);
-    color: #f0e0e0;
-    font-size: 13px;
-    white-space: nowrap;
-    cursor: pointer;
-    z-index: 900;
-    box-shadow: 0 0 10px rgba(255,0,0,.15);
-  }
-  .mine-toggle.active {
-    background: linear-gradient(180deg,#8a6d1e,#4a3a0f);
-    border-color: rgba(220,180,60,.7);
-    color: white;
-    box-shadow: 0 0 18px rgba(220,180,60,.5);
-  }
-  /* Тулбар рисования мин — выше нижних кнопок, чтобы точно не перекрываться и не терять тапы */
-  .mine-toolbar {
-    position: fixed;
-    left: 50%;
-    bottom: 160px;
-    transform: translateX(-50%);
-    display: none;
-    align-items: center;
-    gap: 10px;
-    background: rgba(20,9,10,.97);
-    border: 1px solid var(--panel-border);
-    border-radius: 26px;
-    padding: 10px 16px;
-    z-index: 2000;
-    font-size: 12.5px;
-    white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(0,0,0,.6);
-    pointer-events: auto;
-  }
-  .mine-toolbar.show { display: flex; }
-  .mine-toolbar button {
-    padding: 8px 16px;
-    border-radius: 16px;
-    border: none;
-    font-size: 12.5px;
-    font-weight: 700;
-    cursor: pointer;
-    pointer-events: auto;
-  }
-  .mine-toolbar .mt-cancel { background: #2a2020; color: #e8d8d8; }
-  .mine-toolbar .mt-done { background: linear-gradient(180deg,var(--red),var(--red-dark)); color: white; }
-  .mine-toolbar .mt-done.ready {
-    background: linear-gradient(180deg,#16a34a,#0f6b2c);
-    box-shadow: 0 0 12px rgba(22,163,74,.6);
-  }
 
   /* Меню (гамбургер) и кнопка информации — обе в правом верхнем углу, меню под info */
   .menu-toggle, .info-toggle {
@@ -340,6 +281,28 @@
     font-size: 11px;
     color: #c98d8d;
     margin-top: 6px;
+  }
+  .mode-select {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: #1a0a0a;
+    color: #d9b8b8;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .mode-btn.active {
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    color: white;
+    border-color: rgba(255,80,80,.6);
   }
 
   /* Бейдж непрочитанных сообщений на кнопке чата */
@@ -567,17 +530,6 @@
     background: linear-gradient(180deg,#3a1400,#150500);
     border: 1.5px solid rgba(255,140,40,.7);
     box-shadow: 0 0 12px rgba(255,90,0,.6);
-  }
-  .mine-icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(180deg,#3a2e0a,#150f00);
-    border: 1.5px solid rgba(220,180,60,.7);
-    box-shadow: 0 0 10px rgba(220,180,60,.5);
   }
   .legend span.dot {
     display: inline-block;
@@ -996,6 +948,153 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Режим ПВН: панель кнопок, точка, компас направления, лента БПЛА */
+  .pvn-toggle {
+    position: fixed;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 13px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    color: #f0e0e0;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .pvn-toggle.active {
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    border-color: rgba(255,80,80,.6);
+    color: white;
+    box-shadow: 0 0 18px rgba(255,0,0,.4);
+  }
+  #pvnPointBtn { top: calc(50% + 40px); }
+  #pvnUavBtn { top: calc(50% + 90px); }
+  .pvn-point-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg,#0d2b1a,#051505);
+    border: 1.5px solid rgba(60,220,140,.7);
+    box-shadow: 0 0 10px rgba(60,220,140,.5);
+    color: #7cffb3;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .compass-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 6px 0 4px;
+  }
+  .compass-btn {
+    padding: 10px 0;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: #1a0a0a;
+    color: #d9b8b8;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  .compass-btn.active {
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    color: white;
+    border-color: rgba(255,80,80,.6);
+  }
+  .compass-btn.empty { visibility: hidden; }
+
+  .pvn-feed-toggle {
+    position: fixed;
+    left: 12px;
+    bottom: 20px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    color: white;
+    border: none;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 18px rgba(255,0,0,.4);
+  }
+  .pvn-feed-panel {
+    position: fixed;
+    left: 12px;
+    bottom: 78px;
+    width: min(320px, calc(100vw - 24px));
+    max-height: 50vh;
+    overflow-y: auto;
+    background: rgba(14,6,6,.97);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 12px;
+    z-index: 900;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,.6);
+  }
+  .pvn-feed-panel.open { display: block; }
+  .pvn-feed-empty {
+    font-size: 12.5px;
+    color: #c98d8d;
+    text-align: center;
+    padding: 10px 0;
+  }
+  .pvn-feed-item {
+    background: #1a0a0a;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 9px 11px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+  }
+  .pvn-feed-item:last-child { margin-bottom: 0; }
+  .pvn-feed-title {
+    font-weight: 700;
+    color: #f0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pvn-feed-meta {
+    color: #c98d8d;
+    font-size: 11px;
+    margin-top: 3px;
+  }
+  .pvn-feed-engaged {
+    color: #7cd4ff;
+    font-size: 11.5px;
+    margin-top: 5px;
+    font-weight: 600;
+  }
+  .pvn-feed-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .pvn-feed-actions button {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pvn-fly-btn { background: linear-gradient(180deg,#2563eb,#1d4ed8); color: white; }
+  .pvn-down-btn { background: linear-gradient(180deg,#16a34a,#0f6b2c); color: white; }
 </style>
 </head>
 <body>
@@ -1042,6 +1141,14 @@
   </button>
 
   <div class="menu-panel" id="menuPanel">
+    <div class="menu-row" style="display:block">
+      <span class="menu-label">Режим</span>
+      <div class="mode-select" id="modeSelect">
+        <button type="button" class="mode-btn" data-mode="driver">Водитель</button>
+        <button type="button" class="mode-btn" data-mode="pvn">ПВН</button>
+        <button type="button" class="mode-btn" data-mode="pilot">Пилот</button>
+      </div>
+    </div>
     <div class="menu-row">
       <span class="menu-label">Тема карты</span>
       <button class="theme-toggle" id="themeToggle" title="Светлая / тёмная карта">
@@ -1067,7 +1174,6 @@
     <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
     <div><span class="dot" style="background:#f59e0b"></span>Повреждённая техника</div>
     <div><span class="dot" style="background:#a855f7"></span>Другое</div>
-    <div><span class="dot" style="background:#8a6d1e"></span>Мины — кнопка «Мины», рисуется точками по линии минирования, значок танковой мины. Хранится 24 часа (обычные метки — 30 минут). Досрочно удалить может только тот, кто поставил, либо Хаски</div>
   </div>
 
   <button class="geoloc-toggle" id="geolocToggle">
@@ -1088,19 +1194,30 @@
     <span id="navToggleLabel">Навигатор</span>
   </button>
 
-  <button class="mine-toggle" id="mineToggle">
+  <button class="pvn-toggle" id="pvnPointBtn">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/>
-      <circle cx="12" cy="12" r="2" fill="currentColor"/>
-      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+      <path d="M12 21s7-6.6 7-12a7 7 0 1 0-14 0c0 5.4 7 12 7 12z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+      <circle cx="12" cy="9" r="2.4" stroke="currentColor" stroke-width="1.7"/>
     </svg>
-    <span id="mineToggleLabel">Мины</span>
+    <span id="pvnPointLabel">Моя точка</span>
   </button>
 
-  <div class="mine-toolbar" id="mineToolbar">
-    <span id="mineToolbarHint">Точки: 0</span>
-    <button type="button" class="mt-cancel" id="mineCancelBtn">Отмена</button>
-    <button type="button" class="mt-done" id="mineDoneBtn">Готово</button>
+  <button class="pvn-toggle" id="pvnUavBtn">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 11l17-8-8 17-2.5-6.5L3 11z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    </svg>
+    <span>БПЛА пролетел</span>
+  </button>
+
+  <button class="pvn-feed-toggle" id="pvnFeedToggle" title="БПЛА в эфире">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
+      <path d="M7.5 16.5a6.5 6.5 0 0 1 0-9M16.5 16.5a6.5 6.5 0 0 0 0-9M4.5 19.5a10.5 10.5 0 0 1 0-15M19.5 19.5a10.5 10.5 0 0 0 0-15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    </svg>
+  </button>
+
+  <div class="pvn-feed-panel" id="pvnFeedPanel">
+    <div id="pvnFeedList"><div class="pvn-feed-empty">Пока нет сообщений о БПЛА</div></div>
   </div>
 
   <div class="sky-toast" id="skyToast">Смотри за небом!</div>
@@ -1229,6 +1346,36 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="pvnUavModalOverlay">
+  <div class="modal">
+    <h2>БПЛА пролетел</h2>
+    <label>Тип БПЛА</label>
+    <select id="pvnUavSubtype">
+      <option value="recon">Разведывательный</option>
+      <option value="fpv">FPV / камикадзе</option>
+      <option value="bomber">Сброс боеприпасов</option>
+      <option value="unknown">Неизвестно</option>
+    </select>
+    <label>Направление полёта</label>
+    <div class="compass-grid" id="pvnCompass">
+      <button type="button" class="compass-btn" data-dir="NW">СЗ</button>
+      <button type="button" class="compass-btn" data-dir="N">С</button>
+      <button type="button" class="compass-btn" data-dir="NE">СВ</button>
+      <button type="button" class="compass-btn" data-dir="W">З</button>
+      <button type="button" class="compass-btn empty" data-dir=""></button>
+      <button type="button" class="compass-btn" data-dir="E">В</button>
+      <button type="button" class="compass-btn" data-dir="SW">ЮЗ</button>
+      <button type="button" class="compass-btn" data-dir="S">Ю</button>
+      <button type="button" class="compass-btn" data-dir="SE">ЮВ</button>
+    </div>
+    <p class="nav-status" id="pvnUavStatus"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="pvnUavCancelBtn">Отмена</button>
+      <button class="btn btn-primary" id="pvnUavSaveBtn">Отправить</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="nickModalOverlay">
   <div class="modal">
     <h2>Смена ника</h2>
@@ -1253,9 +1400,6 @@
     <h3>Отметки на карте</h3>
     <p>Клик по карте — добавить отметку (БПЛА-угроза, повреждённая техника, другое). Кнопка «Отметить здесь» добавляет отметку по вашей геолокации. Точечные отметки удаляются автоматически через 30 минут — подтверждайте или опровергайте их, чтобы карта оставалась актуальной.</p>
 
-    <h3>Мины</h3>
-    <p>Кнопка «Мины» включает режим рисования: нажимайте на карте точки вдоль линии минирования, затем «Готово» — появится линия со значками танковых мин. Хранится 24 часа. Досрочно удалить может только тот, кто её поставил, либо пользователь с ником «Хаски» — у него право удалять любые метки.</p>
-
     <h3>Геолокация и навигатор</h3>
     <p>Кнопка «Геолокация» показывает вас на карте и предупреждает звуком и надписью «Внимание» при входе в опасную зону. Кнопка «Навигатор» строит маршрут до нужного населённого пункта, проверяет его на опасные участки и во время поездки следит за дорогой.</p>
 
@@ -1266,7 +1410,12 @@
     <p>Общий чат внизу справа. На иконке чата — счётчик непрочитанных сообщений. Свои сообщения можно редактировать, изменённые помечаются подписью «изменено».</p>
 
     <h3>Меню</h3>
-    <p>В меню (значок с тремя полосками, под кнопкой «i») — переключение светлой/тёмной темы карты и смена ника в чате.</p>
+    <p>В меню (значок с тремя полосками, под кнопкой «i») — переключение светлой/тёмной темы карты, смена ника в чате и выбор режима.</p>
+
+    <h3>Режимы</h3>
+    <p><b>Водитель</b> — обычный режим: навигатор, все отметки на карте, геолокация.</p>
+    <p><b>ПВН</b> — скрывает навигатор и геолокацию. Кнопка «Моя точка» ставит вашу личную точку на карте — её видите только вы (и Хаски), больше никто. Кнопка «БПЛА пролетел» отправляет в общую ленту тип и направление полёта БПЛА, без вашей точки и удалённости — это видят все. Запись в ленте держится 10 минут. В ленте вы можете отметить БПЛА как сбитый.</p>
+    <p><b>Пилот</b> — видит ленту «БПЛА в эфире» и может нажать «Лечу» на записи о БПЛА — это покажет всем, что пилот выдвинулся на перехват.</p>
 
     <div class="info-link-block">
       <p style="margin:0">Ссылка на приложение может меняться, будьте в курсе изменений: присоединяйтесь к чату по ссылке.</p>
@@ -1341,6 +1490,8 @@
   const db = getFirestore(app);
   const marksCollection = collection(db, "marks");
   const chatCollection = collection(db, "chat");
+  const pvnPointsCollection = collection(db, "pvnPoints");
+  const pvnSightingsCollection = collection(db, "pvnSightings");
   const alertsCollection = collection(db, "alerts");
 
   // ---- Карта ----
@@ -1445,8 +1596,7 @@
   const typeMeta = {
     uav:   { color: '#dc2626', label: 'БПЛА-угроза' },
     wreck: { color: '#f59e0b', label: 'Повреждённая техника' },
-    other: { color: '#a855f7', label: 'Другое' },
-    mine:  { color: '#8a6d1e', label: 'Мины' }
+    other: { color: '#a855f7', label: 'Другое' }
   };
 
   const uavSubtypeLabels = {
@@ -1471,7 +1621,6 @@
   }
 
   const EXPIRE_MINUTES = 30; // через сколько минут отметка автоматически удаляется
-  const MINE_EXPIRE_MINUTES = 24 * 60; // мины хранятся дольше — сутки
 
   function buildPopupContent(id, data) {
     const meta = typeMeta[data.type] || typeMeta.other;
@@ -1574,27 +1723,7 @@
     }
     let marker;
     let droneMarker = null;
-    let mineIcons = null;
-    const mineIconHtml = '<div class="mine-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">' +
-      '<circle cx="12" cy="12" r="10" fill="#4a4a2e" stroke="#0a0a0a" stroke-width="1.3"/>' +
-      '<circle cx="12" cy="12" r="6.5" fill="#5c5c38" stroke="#0a0a0a" stroke-width="1"/>' +
-      '<circle cx="12" cy="12" r="2.4" fill="#dc2626"/>' +
-      '<path d="M12 1.5v2.3M12 20.2v2.3M1.5 12h2.3M20.2 12h2.3" stroke="#0a0a0a" stroke-width="1.4" stroke-linecap="round"/>' +
-      '</svg></div>';
-    const mineIcon = L.divIcon({ className: '', html: mineIconHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
-    if (data.type === 'mine' && Array.isArray(data.points) && data.points.length >= 2) {
-      marker = L.polyline(data.points, {
-        color: '#e0b93c',
-        weight: 6,
-        dashArray: '10,8',
-        opacity: 0.95
-      }).addTo(map);
-      mineIcons = data.points.map((p) => L.marker(p, { icon: mineIcon, interactive: false }).addTo(map));
-      marker.bindPopup(buildPopupContent(id, data));
-    } else if (data.type === 'mine') {
-      marker = L.marker([data.lat, data.lng], { icon: mineIcon }).addTo(map);
-      marker.bindPopup(buildPopupContent(id, data));
-    } else if (data.type === 'uav' && data.radius) {
+    if (data.type === 'uav' && data.radius) {
       marker = L.circle([data.lat, data.lng], {
         radius: data.radius,
         fillColor: meta.color,
@@ -1636,7 +1765,7 @@
       }).addTo(map);
       marker.bindPopup(buildPopupContent(id, data));
     }
-    markersById[id] = { marker, droneMarker, mineIcons };
+    markersById[id] = { marker, droneMarker };
     dataById[id] = data;
   }
 
@@ -1649,8 +1778,7 @@
       const data = dataById[id];
       if (!data.createdAt) return;
       const ageMin = (now - data.createdAt.toDate().getTime()) / 60000;
-      const limit = data.type === 'mine' ? MINE_EXPIRE_MINUTES : EXPIRE_MINUTES;
-      if (ageMin > limit) {
+      if (ageMin > EXPIRE_MINUTES) {
         deleteDoc(doc(db, 'marks', id)).catch(() => {});
       }
     });
@@ -1665,7 +1793,6 @@
         if (markersById[id]) {
           map.removeLayer(markersById[id].marker);
           if (markersById[id].droneMarker) map.removeLayer(markersById[id].droneMarker);
-          if (markersById[id].mineIcons) markersById[id].mineIcons.forEach((m) => map.removeLayer(m));
           delete markersById[id];
         }
         delete dataById[id];
@@ -1703,11 +1830,7 @@
   });
 
   map.on('click', (e) => {
-    if (mineDrawActive) {
-      minePoints.push(e.latlng);
-      updateMinePreview();
-      return;
-    }
+    if (typeof pvnPlacing !== 'undefined' && pvnPlacing) return;
     pendingLatLng = e.latlng;
     modalTitle.textContent = 'Новая отметка';
     overlay.classList.add('open');
@@ -1740,85 +1863,6 @@
     overlay.classList.remove('open');
     document.getElementById('markComment').value = '';
     pendingLatLng = null;
-  });
-
-  // ---- Мины: режим рисования линии по точкам ----
-  const mineToggle = document.getElementById('mineToggle');
-  const mineToolbar = document.getElementById('mineToolbar');
-  const mineToolbarHint = document.getElementById('mineToolbarHint');
-  const mineCancelBtn = document.getElementById('mineCancelBtn');
-  const mineDoneBtn = document.getElementById('mineDoneBtn');
-  let mineDrawActive = false;
-  let minePoints = [];
-  let minePreviewLine = null;
-  let minePreviewDots = [];
-
-  function updateMinePreview() {
-    if (minePreviewLine) { map.removeLayer(minePreviewLine); minePreviewLine = null; }
-    minePreviewDots.forEach((d) => map.removeLayer(d));
-    minePreviewDots = [];
-    if (minePoints.length) {
-      minePreviewLine = L.polyline(minePoints, { color: '#e0b93c', weight: 5, dashArray: '10,8', opacity: 0.95 }).addTo(map);
-      minePoints.forEach((p) => {
-        minePreviewDots.push(L.circleMarker(p, { radius: 5, color: '#fff', weight: 2, fillColor: '#e0b93c', fillOpacity: 1, interactive: false }).addTo(map));
-      });
-    }
-    mineToolbarHint.textContent = 'Точки: ' + minePoints.length + (minePoints.length < 2 ? ' (нужно минимум 2)' : '');
-    mineDoneBtn.classList.toggle('ready', minePoints.length >= 2);
-  }
-
-  function resetMineDraw() {
-    mineDrawActive = false;
-    mineToggle.classList.remove('active');
-    mineToolbar.classList.remove('show');
-    minePoints = [];
-    updateMinePreview();
-  }
-
-  mineToggle.addEventListener('click', () => {
-    mineDrawActive = !mineDrawActive;
-    mineToggle.classList.toggle('active', mineDrawActive);
-    if (mineDrawActive) {
-      minePoints = [];
-      updateMinePreview();
-      mineToolbar.classList.add('show');
-    } else {
-      mineToolbar.classList.remove('show');
-      minePoints = [];
-      updateMinePreview();
-    }
-  });
-
-  mineCancelBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    resetMineDraw();
-  });
-
-  // Кнопка "Готово" НЕ блокируется через disabled — только проверка внутри обработчика,
-  // чтобы тап на мобильном точно доходил до клика.
-  mineDoneBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (minePoints.length < 2) {
-      mineToolbarHint.textContent = 'Отметьте минимум 2 точки на карте';
-      return;
-    }
-    const pointsToSave = minePoints.map((p) => ({ lat: p.lat, lng: p.lng }));
-    resetMineDraw();
-    try {
-      await addDoc(marksCollection, {
-        type: 'mine',
-        lat: pointsToSave[0].lat,
-        lng: pointsToSave[0].lng,
-        points: pointsToSave,
-        comment: '',
-        confirmedBy: [],
-        deniedBy: [],
-        ownerId: OWNER_ID,
-        createdAt: serverTimestamp()
-      });
-    } catch (err) {
-      alert('Не удалось сохранить линию минирования: ' + err.message);
-    }
   });
 
   // ---- Оповещение о приближении к опасной зоне ----
@@ -1902,10 +1946,8 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // Универсально достаёт точки метки в формате {lat,lng}: для точечных меток — одна точка,
-  // для мин-линии — весь массив точек линии.
+  // Универсально достаёт координаты метки (для проверки близости геолокации)
   function getMarkPoints(data) {
-    if (data.type === 'mine' && Array.isArray(data.points) && data.points.length) return data.points;
     if (data.lat != null && data.lng != null) return [{ lat: data.lat, lng: data.lng }];
     return [];
   }
@@ -1916,7 +1958,7 @@
       const pts = getMarkPoints(data);
       if (!pts.length) return;
 
-      const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius : 300);
+      const threshold = (data.type === 'uav' && data.radius) ? data.radius : 300;
       let minDist = Infinity;
       pts.forEach((p) => {
         const d = distanceMeters(coords.latitude, coords.longitude, p.lat, p.lng);
@@ -2427,7 +2469,7 @@
       const data = dataById[id];
       const pts = getMarkPoints(data);
       if (!pts.length) return;
-      const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius + 400 : 500);
+      const threshold = (data.type === 'uav' && data.radius) ? data.radius + 400 : 500;
       const hit = pts.some((p) => distanceToRoute(p.lat, p.lng, coords) <= threshold);
       if (hit) {
         dangerMarkers.push({ lat: pts[0].lat, lng: pts[0].lng });
@@ -2517,6 +2559,223 @@
     navResult.classList.remove('show', 'safe', 'danger');
     navModalOverlay.classList.remove('open');
   });
+
+  // ---- Режимы: Водитель / ПВН / Пилот ----
+  const modeButtons = document.querySelectorAll('.mode-btn');
+  let appMode = localStorage.getItem('appMode') || 'driver';
+
+  function applyMode() {
+    modeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mode === appMode));
+
+    const isPvn = appMode === 'pvn';
+    const isPilot = appMode === 'pilot';
+
+    // ПВН: без навигатора и геолокации, вместо них — своя панель
+    geolocToggle.style.display = isPvn ? 'none' : 'flex';
+    navToggle.style.display = isPvn ? 'none' : 'flex';
+    pvnPointBtn.style.display = isPvn ? 'flex' : 'none';
+    pvnUavBtn.style.display = isPvn ? 'flex' : 'none';
+
+    // Лента "БПЛА в эфире" — для ПВН, Пилота и Хаски в любом режиме
+    const feedVisible = isPvn || isPilot || isHusky();
+    pvnFeedToggle.style.display = feedVisible ? 'flex' : 'none';
+    if (!feedVisible) pvnFeedPanel.classList.remove('open');
+
+    renderPvnFeed();
+  }
+
+  modeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      appMode = btn.dataset.mode;
+      localStorage.setItem('appMode', appMode);
+      applyMode();
+      menuPanel.classList.remove('open');
+    });
+  });
+
+  // ---- Точка ПВН: видна только владельцу и Хаски ----
+  const pvnPointBtn = document.getElementById('pvnPointBtn');
+  const pvnPointLabel = document.getElementById('pvnPointLabel');
+  let pvnPlacing = false;
+  let myPvnPoint = null; // {lat, lng}
+  const pvnPointMarkers = {}; // ownerId -> L.marker (рендерятся только для себя/Хаски)
+
+  pvnPointBtn.addEventListener('click', () => {
+    pvnPlacing = !pvnPlacing;
+    pvnPointBtn.classList.toggle('active', pvnPlacing);
+    pvnPointLabel.textContent = pvnPlacing ? 'Тапните по карте' : 'Моя точка';
+  });
+
+  map.on('click', async (e) => {
+    if (!pvnPlacing) return;
+    pvnPlacing = false;
+    pvnPointBtn.classList.remove('active');
+    pvnPointLabel.textContent = 'Моя точка';
+    myPvnPoint = { lat: e.latlng.lat, lng: e.latlng.lng };
+    try {
+      await setDoc(doc(db, 'pvnPoints', OWNER_ID), {
+        lat: myPvnPoint.lat,
+        lng: myPvnPoint.lng,
+        nickname: NICKNAME,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      alert('Не удалось сохранить точку: ' + err.message);
+    }
+  });
+
+  const pvnPointIcon = L.divIcon({
+    className: '',
+    html: '<div class="pvn-point-icon">ПВН</div>',
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
+  });
+
+  onSnapshot(pvnPointsCollection, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      if (change.type === 'removed') {
+        if (pvnPointMarkers[id]) { map.removeLayer(pvnPointMarkers[id]); delete pvnPointMarkers[id]; }
+        return;
+      }
+      const data = change.doc.data();
+      // Точка видна только самому ПВН и Хаски — остальным клиентам не отрисовываем.
+      if (id !== OWNER_ID && !isHusky()) return;
+      if (id === OWNER_ID) myPvnPoint = { lat: data.lat, lng: data.lng };
+      if (pvnPointMarkers[id]) { map.removeLayer(pvnPointMarkers[id]); }
+      pvnPointMarkers[id] = L.marker([data.lat, data.lng], { icon: pvnPointIcon })
+        .bindPopup(id === OWNER_ID ? 'Ваша точка ПВН' : `Точка ПВН: ${escapeHtml(data.nickname || 'без ника')}`)
+        .addTo(map);
+    });
+  });
+
+  // ---- "БПЛА пролетел": тип + направление, без координат ПВН, лента для всех ----
+  const pvnUavBtn = document.getElementById('pvnUavBtn');
+  const pvnUavModalOverlay = document.getElementById('pvnUavModalOverlay');
+  const pvnUavStatus = document.getElementById('pvnUavStatus');
+  const pvnCompass = document.getElementById('pvnCompass');
+  let pvnSelectedDir = null;
+
+  pvnUavBtn.addEventListener('click', () => {
+    pvnSelectedDir = null;
+    pvnCompass.querySelectorAll('.compass-btn').forEach((b) => b.classList.remove('active'));
+    pvnUavStatus.textContent = '';
+    pvnUavModalOverlay.classList.add('open');
+  });
+
+  pvnCompass.querySelectorAll('.compass-btn[data-dir]:not(.empty)').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      pvnSelectedDir = btn.dataset.dir;
+      pvnCompass.querySelectorAll('.compass-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.getElementById('pvnUavCancelBtn').addEventListener('click', () => {
+    pvnUavModalOverlay.classList.remove('open');
+  });
+
+  const dirLabels = { N: 'Север', NE: 'Северо-восток', E: 'Восток', SE: 'Юго-восток', S: 'Юг', SW: 'Юго-запад', W: 'Запад', NW: 'Северо-запад' };
+
+  document.getElementById('pvnUavSaveBtn').addEventListener('click', async () => {
+    if (!pvnSelectedDir) {
+      pvnUavStatus.textContent = 'Выберите направление полёта.';
+      return;
+    }
+    try {
+      await addDoc(pvnSightingsCollection, {
+        subtype: document.getElementById('pvnUavSubtype').value,
+        direction: pvnSelectedDir,
+        ownerId: OWNER_ID,
+        pilotEngaged: false,
+        pilotNickname: null,
+        createdAt: serverTimestamp()
+      });
+      pvnUavModalOverlay.classList.remove('open');
+    } catch (err) {
+      pvnUavStatus.textContent = 'Ошибка отправки: ' + err.message;
+    }
+  });
+
+  // ---- Лента "БПЛА в эфире" ----
+  const pvnFeedToggle = document.getElementById('pvnFeedToggle');
+  const pvnFeedPanel = document.getElementById('pvnFeedPanel');
+  const pvnFeedList = document.getElementById('pvnFeedList');
+  const PVN_SIGHTING_EXPIRE_MIN = 10;
+  let pvnSightings = {};
+
+  pvnFeedToggle.addEventListener('click', () => {
+    pvnFeedPanel.classList.toggle('open');
+  });
+
+  function timeAgoLabel(createdAt) {
+    if (!createdAt) return 'только что';
+    const min = Math.floor((Date.now() - createdAt.toDate().getTime()) / 60000);
+    if (min < 1) return 'только что';
+    return min + ' мин назад';
+  }
+
+  function renderPvnFeed() {
+    const ids = Object.keys(pvnSightings).sort((a, b) =>
+      (pvnSightings[b].createdAt?.toDate?.() || 0) - (pvnSightings[a].createdAt?.toDate?.() || 0));
+    if (!ids.length) {
+      pvnFeedList.innerHTML = '<div class="pvn-feed-empty">Пока нет сообщений о БПЛА</div>';
+      return;
+    }
+    pvnFeedList.innerHTML = ids.map((id) => {
+      const s = pvnSightings[id];
+      const typeLabel = uavSubtypeLabels[s.subtype] || s.subtype;
+      let actions = '';
+      if (appMode === 'pilot' && !s.pilotEngaged) {
+        actions += `<button class="pvn-fly-btn" onclick="window.__pvnFly('${id}')">Лечу</button>`;
+      }
+      if (appMode === 'pvn' || isHusky()) {
+        actions += `<button class="pvn-down-btn" onclick="window.__pvnDown('${id}')">Сбит</button>`;
+      }
+      return `<div class="pvn-feed-item">
+        <div class="pvn-feed-title"><span>БПЛА: ${escapeHtml(typeLabel)}</span><span>${dirLabels[s.direction] || s.direction}</span></div>
+        <div class="pvn-feed-meta">${timeAgoLabel(s.createdAt)}</div>
+        ${s.pilotEngaged ? `<div class="pvn-feed-engaged">🛩 Пилот вылетел на перехват</div>` : ''}
+        ${actions ? `<div class="pvn-feed-actions">${actions}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  window.__pvnFly = async (id) => {
+    await updateDoc(doc(db, 'pvnSightings', id), { pilotEngaged: true, pilotNickname: NICKNAME });
+  };
+  window.__pvnDown = async (id) => {
+    await deleteDoc(doc(db, 'pvnSightings', id)).catch(() => {});
+  };
+
+  onSnapshot(pvnSightingsCollection, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      if (change.type === 'removed') {
+        delete pvnSightings[id];
+      } else {
+        pvnSightings[id] = change.doc.data();
+      }
+    });
+    renderPvnFeed();
+  });
+
+  // Автоудаление сообщений о БПЛА через 10 минут
+  setInterval(() => {
+    const now = Date.now();
+    Object.keys(pvnSightings).forEach((id) => {
+      const s = pvnSightings[id];
+      if (!s.createdAt) return;
+      const ageMin = (now - s.createdAt.toDate().getTime()) / 60000;
+      if (ageMin > PVN_SIGHTING_EXPIRE_MIN) {
+        deleteDoc(doc(db, 'pvnSightings', id)).catch(() => {});
+      }
+    });
+  }, 30000);
+  // Обновляем подписи "N мин назад" каждую минуту без ожидания новых снапшотов
+  setInterval(renderPvnFeed, 60000);
+
+  applyMode();
 
   // ---- PWA: регистрация service worker (нужно для установки как приложение на Android) ----
   if ('serviceWorker' in navigator) {
