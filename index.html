@@ -1229,6 +1229,23 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="nickModalOverlay">
+  <div class="modal">
+    <h2>Смена ника</h2>
+    <label>Новый ник для чата</label>
+    <input type="text" id="nickInput" maxlength="24" placeholder="Например: Гость_1234">
+    <div id="nickCodeBlock" style="display:none">
+      <label>Код доступа</label>
+      <input type="text" id="nickCodeInput" placeholder="Код" inputmode="numeric">
+    </div>
+    <p class="nav-status" id="nickStatus"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="nickCancelBtn">Отмена</button>
+      <button class="btn btn-primary" id="nickSaveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="infoModalOverlay">
   <div class="modal info-modal">
     <h2>Как пользоваться</h2>
@@ -1785,7 +1802,7 @@
       mineToolbarHint.textContent = 'Отметьте минимум 2 точки на карте';
       return;
     }
-    const pointsToSave = minePoints.map((p) => [p.lat, p.lng]);
+    const pointsToSave = minePoints.map((p) => ({ lat: p.lat, lng: p.lng }));
     resetMineDraw();
     try {
       await addDoc(marksCollection, {
@@ -1883,11 +1900,11 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // Универсально достаёт точки метки: для точечных меток — одна пара координат,
+  // Универсально достаёт точки метки в формате {lat,lng}: для точечных меток — одна точка,
   // для мин-линии — весь массив точек линии.
   function getMarkPoints(data) {
     if (data.type === 'mine' && Array.isArray(data.points) && data.points.length) return data.points;
-    if (data.lat != null && data.lng != null) return [[data.lat, data.lng]];
+    if (data.lat != null && data.lng != null) return [{ lat: data.lat, lng: data.lng }];
     return [];
   }
 
@@ -1899,8 +1916,8 @@
 
       const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius : 300);
       let minDist = Infinity;
-      pts.forEach(([lat, lng]) => {
-        const d = distanceMeters(coords.latitude, coords.longitude, lat, lng);
+      pts.forEach((p) => {
+        const d = distanceMeters(coords.latitude, coords.longitude, p.lat, p.lng);
         if (d < minDist) minDist = d;
       });
       const inside = minDist <= threshold;
@@ -2199,25 +2216,51 @@
   });
 
   const HUSKY_CODE = '2004';
+  const nickModalOverlay = document.getElementById('nickModalOverlay');
+  const nickInput = document.getElementById('nickInput');
+  const nickCodeBlock = document.getElementById('nickCodeBlock');
+  const nickCodeInput = document.getElementById('nickCodeInput');
+  const nickStatus = document.getElementById('nickStatus');
+  const nickSaveBtn = document.getElementById('nickSaveBtn');
 
   menuNickBtn.addEventListener('click', () => {
-    const newName = prompt('Введите новый ник для чата:', NICKNAME);
-    if (newName === null) return;
-    const trimmed = newName.trim();
-    if (!trimmed) return;
+    nickInput.value = NICKNAME;
+    nickCodeInput.value = '';
+    nickCodeBlock.style.display = 'none';
+    nickStatus.textContent = '';
+    menuPanel.classList.remove('open');
+    nickModalOverlay.classList.add('open');
+    setTimeout(() => nickInput.focus(), 50);
+  });
+
+  // Поле с кодом появляется, как только ник (без учёта регистра) — "хаски"
+  nickInput.addEventListener('input', () => {
+    const isHuskyName = nickInput.value.trim().toLowerCase() === 'хаски';
+    nickCodeBlock.style.display = isHuskyName ? 'block' : 'none';
+    nickStatus.textContent = '';
+  });
+
+  document.getElementById('nickCancelBtn').addEventListener('click', () => {
+    nickModalOverlay.classList.remove('open');
+  });
+
+  nickSaveBtn.addEventListener('click', () => {
+    const trimmed = nickInput.value.trim();
+    if (!trimmed) {
+      nickStatus.textContent = 'Введите ник.';
+      return;
+    }
     if (trimmed.toLowerCase() === 'хаски') {
-      const code = prompt('Ник «Хаски» даёт право удалять любые метки. Введите код доступа:');
-      if (code === null) return;
-      if (code.trim() !== HUSKY_CODE) {
-        alert('Неверный код. Ник не изменён.');
+      if (nickCodeInput.value.trim() !== HUSKY_CODE) {
+        nickStatus.textContent = 'Неверный код доступа.';
         return;
       }
       setNickname('Хаски');
-      refreshMenuNick();
-      return;
+    } else {
+      setNickname(trimmed);
     }
-    setNickname(trimmed);
     refreshMenuNick();
+    nickModalOverlay.classList.remove('open');
   });
 
   document.addEventListener('click', (e) => {
@@ -2383,9 +2426,9 @@
       const pts = getMarkPoints(data);
       if (!pts.length) return;
       const threshold = data.type === 'mine' ? 150 : ((data.type === 'uav' && data.radius) ? data.radius + 400 : 500);
-      const hit = pts.some(([lat, lng]) => distanceToRoute(lat, lng, coords) <= threshold);
+      const hit = pts.some((p) => distanceToRoute(p.lat, p.lng, coords) <= threshold);
       if (hit) {
-        dangerMarkers.push({ lat: pts[0][0], lng: pts[0][1] });
+        dangerMarkers.push({ lat: pts[0].lat, lng: pts[0].lng });
       }
     });
     if (!dangerMarkers.length) return [];
