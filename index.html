@@ -114,7 +114,7 @@
   }
   .legend {
     position: fixed;
-    top: calc(50% + 88px);
+    top: calc(50% + 178px);
     left: 12px;
     background: rgba(20,9,10,.92);
     border: 1px solid var(--panel-border);
@@ -174,8 +174,8 @@
 
   .geoloc-toggle {
     position: fixed;
-    top: 56px;
-    right: 12px;
+    top: calc(50% + 78px);
+    left: 12px;
     display: flex;
     align-items: center;
     gap: 7px;
@@ -191,6 +191,30 @@
     box-shadow: 0 0 10px rgba(255,0,0,.15);
   }
   .geoloc-toggle.on {
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    border-color: rgba(255,80,80,.6);
+    color: white;
+    box-shadow: 0 0 18px rgba(255,0,0,.4);
+  }
+  .nav-toggle {
+    position: fixed;
+    top: calc(50% + 128px);
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 13px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    color: #f0e0e0;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .nav-toggle.active {
     background: linear-gradient(180deg,var(--red),var(--red-dark));
     border-color: rgba(255,80,80,.6);
     color: white;
@@ -663,6 +687,85 @@
     0%, 100% { opacity: 0; box-shadow: inset 0 0 0 rgba(255,0,0,0); }
     50% { opacity: 1; box-shadow: inset 0 0 160px rgba(255,0,0,.6); }
   }
+
+  /* Окно навигатора: поиск населённых пунктов, маршрут, проверка дороги */
+  .nav-modal { width: 340px; }
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-list {
+    position: absolute;
+    left: 0; right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: #0a0303;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    max-height: 160px;
+    overflow-y: auto;
+    z-index: 20;
+    display: none;
+  }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item {
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #f0e0e0;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,0,0,.08);
+  }
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover { background: rgba(255,0,0,.18); }
+  .nav-status {
+    font-size: 12px;
+    color: #c98d8d;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  .nav-result {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    display: none;
+  }
+  .nav-result.show { display: block; }
+  .nav-result.safe {
+    background: rgba(22,163,74,.12);
+    border: 1px solid rgba(22,163,74,.4);
+    color: #7be0a0;
+  }
+  .nav-result.danger {
+    background: rgba(255,0,0,.12);
+    border: 1px solid rgba(255,40,40,.5);
+    color: #ff8080;
+  }
+  #navOriginBlock { display: none; }
+
+  /* Тост "Смотри за небом!" при старте навигации */
+  .sky-toast {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid rgba(255,80,80,.5);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .3px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    z-index: 1900;
+    box-shadow: 0 0 20px rgba(255,0,0,.4);
+    opacity: 0;
+    transition: opacity .3s ease, transform .3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .sky-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body>
@@ -724,6 +827,15 @@
     <span id="geolocLabel">Геолокация: выкл</span>
   </button>
 
+  <button class="nav-toggle" id="navToggle">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 11l17-8-8 17-2.5-6.5L3 11z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    </svg>
+    <span id="navToggleLabel">Навигатор</span>
+  </button>
+
+  <div class="sky-toast" id="skyToast">Смотри за небом!</div>
+
   <div class="bottom-actions">
     <button class="geo-toggle" id="geoMarkBtn">
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -777,7 +889,7 @@
       <path d="M12 10v4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       <circle cx="12" cy="17.3" r="1" fill="currentColor"/>
     </svg>
-    Обратите внимание на карту
+    Внимание
   </div>
 </div>
 
@@ -811,6 +923,38 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" id="cancelBtn">Отмена</button>
       <button class="btn btn-primary" id="saveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="navModalOverlay">
+  <div class="modal nav-modal">
+    <h2>Навигатор</h2>
+
+    <label>Куда едете?</label>
+    <div class="autocomplete-wrap">
+      <input type="text" id="navDestInput" placeholder="Начните вводить населённый пункт..." autocomplete="off">
+      <div class="autocomplete-list" id="navDestList"></div>
+    </div>
+
+    <div id="navOriginBlock">
+      <label>Откуда едете? (геолокация выключена)</label>
+      <div class="autocomplete-wrap">
+        <input type="text" id="navOriginInput" placeholder="Начните вводить населённый пункт..." autocomplete="off">
+        <div class="autocomplete-list" id="navOriginList"></div>
+      </div>
+    </div>
+
+    <p class="nav-status" id="navStatus"></p>
+    <div class="nav-result" id="navResult"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="navCancelBtn">Закрыть</button>
+      <button class="btn btn-primary" id="navCheckBtn">Проверить дорогу</button>
+    </div>
+    <div class="modal-actions" id="navStartRow" style="display:none">
+      <button class="btn btn-secondary" id="navStopBtn">Завершить навигацию</button>
+      <button class="btn btn-primary" id="navStartBtn">Начать навигацию</button>
     </div>
   </div>
 </div>
@@ -1297,7 +1441,7 @@
 
   function triggerProximityAlert() {
     playProximitySound();
-    speakWarning('Обратите внимание на карту');
+    speakWarning('Внимание, опасная зона рядом');
     showProximityFlash();
   }
 
@@ -1558,6 +1702,222 @@
   const legendPanel = document.getElementById('legendPanel');
   legendToggle.addEventListener('click', () => {
     legendPanel.classList.toggle('open');
+  });
+
+  // ---- Навигатор: поиск населённых пунктов, построение маршрута, проверка дороги ----
+  const REGION_VIEWBOX = '34.0,49.8,40.2,46.0'; // left,top,right,bottom для Nominatim (Донецкая/Луганская/Запорожская)
+
+  async function searchSettlements(queryText) {
+    if (!queryText || queryText.trim().length < 2) return [];
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6' +
+      '&countrycodes=ua&viewbox=' + REGION_VIEWBOX + '&bounded=1' +
+      '&q=' + encodeURIComponent(queryText.trim());
+    try {
+      const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+      if (!res.ok) return [];
+      const items = await res.json();
+      return items.map((it) => ({
+        name: it.display_name.split(',').slice(0, 3).join(','),
+        lat: parseFloat(it.lat),
+        lng: parseFloat(it.lon)
+      }));
+    } catch (e) {
+      console.warn('Ошибка поиска населённого пункта:', e);
+      return [];
+    }
+  }
+
+  async function reverseSettlementName(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&zoom=12&lat=${lat}&lon=${lng}`;
+    try {
+      const res = await fetch(url, { headers: { 'Accept-Language': 'ru' } });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const a = data.address || {};
+      return a.city || a.town || a.village || a.hamlet || a.municipality || a.county || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setupAutocomplete(inputEl, listEl, onPick) {
+    let timer = null;
+    let picked = null;
+    inputEl.addEventListener('input', () => {
+      picked = null;
+      clearTimeout(timer);
+      const q = inputEl.value;
+      timer = setTimeout(async () => {
+        const results = await searchSettlements(q);
+        listEl.innerHTML = '';
+        if (!results.length) {
+          listEl.classList.remove('open');
+          return;
+        }
+        results.forEach((r) => {
+          const item = document.createElement('div');
+          item.className = 'autocomplete-item';
+          item.textContent = r.name;
+          item.addEventListener('click', () => {
+            inputEl.value = r.name;
+            listEl.classList.remove('open');
+            picked = r;
+            onPick(r);
+          });
+          listEl.appendChild(item);
+        });
+        listEl.classList.add('open');
+      }, 400);
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target !== inputEl) listEl.classList.remove('open');
+    });
+    return () => picked;
+  }
+
+  const navToggle = document.getElementById('navToggle');
+  const navModalOverlay = document.getElementById('navModalOverlay');
+  const navDestInput = document.getElementById('navDestInput');
+  const navOriginInput = document.getElementById('navOriginInput');
+  const navOriginBlock = document.getElementById('navOriginBlock');
+  const navStatus = document.getElementById('navStatus');
+  const navResult = document.getElementById('navResult');
+  const navCheckBtn = document.getElementById('navCheckBtn');
+  const navStartRow = document.getElementById('navStartRow');
+  const navStartBtn = document.getElementById('navStartBtn');
+  const navStopBtn = document.getElementById('navStopBtn');
+
+  let navDestPoint = null;
+  let navOriginPoint = null;
+  let navRouteCoords = null;
+  let navRouteLine = null;
+  let navigationActive = false;
+
+  const getNavDestPicked = setupAutocomplete(navDestInput, document.getElementById('navDestList'), (r) => {
+    navDestPoint = r;
+  });
+  const getNavOriginPicked = setupAutocomplete(navOriginInput, document.getElementById('navOriginList'), (r) => {
+    navOriginPoint = r;
+  });
+
+  navToggle.addEventListener('click', () => {
+    navOriginBlock.style.display = geolocOn ? 'none' : 'block';
+    navModalOverlay.classList.add('open');
+  });
+
+  document.getElementById('navCancelBtn').addEventListener('click', () => {
+    navModalOverlay.classList.remove('open');
+  });
+
+  function skyToast() {
+    const toast = document.getElementById('skyToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3200);
+  }
+
+  // Минимальное расстояние (в метрах) от точки до полилинии маршрута
+  function distanceToRoute(lat, lng, coords) {
+    let min = Infinity;
+    for (let i = 0; i < coords.length; i++) {
+      const d = distanceMeters(lat, lng, coords[i][0], coords[i][1]);
+      if (d < min) min = d;
+    }
+    return min;
+  }
+
+  async function analyzeRouteDanger(coords) {
+    const dangerMarkers = [];
+    Object.keys(dataById).forEach((id) => {
+      const data = dataById[id];
+      if (!data.lat || !data.lng) return;
+      const threshold = (data.type === 'uav' && data.radius) ? data.radius + 400 : 500;
+      if (distanceToRoute(data.lat, data.lng, coords) <= threshold) {
+        dangerMarkers.push(data);
+      }
+    });
+    if (!dangerMarkers.length) return [];
+    const namesSet = new Set();
+    // не больше 6 обратных геокодирований, чтобы не упереться в лимиты Nominatim
+    for (const m of dangerMarkers.slice(0, 6)) {
+      const name = await reverseSettlementName(m.lat, m.lng);
+      if (name) namesSet.add(name);
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return Array.from(namesSet);
+  }
+
+  async function fetchRoute(origin, dest) {
+    const url = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Сервис маршрутов недоступен');
+    const data = await res.json();
+    if (!data.routes || !data.routes.length) throw new Error('Маршрут не найден');
+    return data.routes[0].geometry.coordinates.map(([lon, lat]) => [lat, lon]);
+  }
+
+  navCheckBtn.addEventListener('click', async () => {
+    if (!navDestPoint) {
+      navStatus.textContent = 'Сначала выберите пункт назначения из списка.';
+      return;
+    }
+    let origin = null;
+    if (geolocOn && myLocationMarker) {
+      const ll = myLocationMarker.getLatLng();
+      origin = { lat: ll.lat, lng: ll.lng };
+    } else if (navOriginPoint) {
+      origin = navOriginPoint;
+    } else {
+      navStatus.textContent = 'Включите геолокацию или укажите, откуда вы едете.';
+      return;
+    }
+
+    navResult.classList.remove('show', 'safe', 'danger');
+    navStartRow.style.display = 'none';
+    navStatus.textContent = 'Строю маршрут...';
+    try {
+      navRouteCoords = await fetchRoute(origin, navDestPoint);
+      if (navRouteLine) map.removeLayer(navRouteLine);
+      navRouteLine = L.polyline(navRouteCoords, { color: '#3aa0ff', weight: 5, opacity: 0.85 }).addTo(map);
+      map.fitBounds(navRouteLine.getBounds(), { padding: [30, 30] });
+
+      navStatus.textContent = 'Проверяю дорогу по имеющимся отметкам...';
+      const dangerNames = await analyzeRouteDanger(navRouteCoords);
+      navStatus.textContent = '';
+      if (dangerNames.length) {
+        navResult.textContent = '⚠ Опасно возле населённых пунктов: ' + dangerNames.join(', ') + '. Данные собраны пользователями, будьте внимательны.';
+        navResult.classList.add('show', 'danger');
+      } else {
+        navResult.textContent = '✅ По имеющимся отметкам маршрут выглядит безопасным. База пополняется пользователями, следите за картой в пути.';
+        navResult.classList.add('show', 'safe');
+      }
+      navStartRow.style.display = 'flex';
+    } catch (e) {
+      navStatus.textContent = 'Не удалось построить маршрут: ' + e.message;
+    }
+  });
+
+  navStartBtn.addEventListener('click', () => {
+    if (!navRouteCoords) return;
+    navigationActive = true;
+    navModalOverlay.classList.remove('open');
+    navToggle.classList.add('active');
+    document.getElementById('navToggleLabel').textContent = 'В пути';
+    if (!geolocOn) turnGeolocOn();
+    skyToast();
+  });
+
+  navStopBtn.addEventListener('click', () => {
+    navigationActive = false;
+    navToggle.classList.remove('active');
+    document.getElementById('navToggleLabel').textContent = 'Навигатор';
+    if (navRouteLine) {
+      map.removeLayer(navRouteLine);
+      navRouteLine = null;
+    }
+    navRouteCoords = null;
+    navStartRow.style.display = 'none';
+    navResult.classList.remove('show', 'safe', 'danger');
+    navModalOverlay.classList.remove('open');
   });
 
   // ---- PWA: регистрация service worker (нужно для установки как приложение на Android) ----
