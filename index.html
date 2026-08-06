@@ -1279,7 +1279,6 @@
       <circle cx="12" cy="12" r="2.2" fill="currentColor"/>
       <path d="M7.5 16.5a6.5 6.5 0 0 1 0-9M16.5 16.5a6.5 6.5 0 0 0 0-9M4.5 19.5a10.5 10.5 0 0 1 0-15M19.5 19.5a10.5 10.5 0 0 0 0-15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
     </svg>
-    <span class="chat-badge" id="pvnFeedBadge">0</span>
   </button>
 
   <div class="pvn-feed-panel" id="pvnFeedPanel">
@@ -1287,6 +1286,7 @@
   </div>
 
   <div class="sky-toast" id="skyToast">Смотри за небом!</div>
+  <div class="sky-toast" id="feedToast" style="background:linear-gradient(180deg,var(--red),var(--red-dark))">⚠ Внимание на эфир</div>
 
   <div class="bottom-actions">
     <button class="geo-toggle" id="geoMarkBtn">
@@ -2848,28 +2848,20 @@
   const pvnFeedToggle = document.getElementById('pvnFeedToggle');
   const pvnFeedPanel = document.getElementById('pvnFeedPanel');
   const pvnFeedList = document.getElementById('pvnFeedList');
-  const pvnFeedBadge = document.getElementById('pvnFeedBadge');
+  const feedToast = document.getElementById('feedToast');
   const PVN_SIGHTING_EXPIRE_MIN = 10;
   let pvnSightings = {};
-  let pvnFeedUnread = 0;
   let pvnFeedInitialLoadDone = false;
   const pvnArrowLayers = {}; // id -> { line, head }
 
-  function updatePvnFeedBadge() {
-    if (pvnFeedUnread > 0) {
-      pvnFeedBadge.textContent = pvnFeedUnread > 99 ? '99+' : String(pvnFeedUnread);
-      pvnFeedBadge.classList.add('show');
-    } else {
-      pvnFeedBadge.classList.remove('show');
-    }
+  function showFeedAlert() {
+    playProximitySound();
+    feedToast.classList.add('show');
+    setTimeout(() => feedToast.classList.remove('show'), 5000);
   }
 
   pvnFeedToggle.addEventListener('click', () => {
     pvnFeedPanel.classList.toggle('open');
-    if (pvnFeedPanel.classList.contains('open')) {
-      pvnFeedUnread = 0;
-      updatePvnFeedBadge();
-    }
   });
 
   function timeAgoLabel(createdAt) {
@@ -3003,12 +2995,9 @@
     if (!pvnFeedInitialLoadDone) {
       pvnFeedInitialLoadDone = true;
     } else if (!pvnFeedPanel.classList.contains('open')) {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added' && change.doc.data().ownerId !== OWNER_ID && pvnFeedVisible()) {
-          pvnFeedUnread += 1;
-        }
-      });
-      updatePvnFeedBadge();
+      const gotNew = snapshot.docChanges().some((change) =>
+        change.type === 'added' && change.doc.data().ownerId !== OWNER_ID && pvnFeedVisible());
+      if (gotNew) showFeedAlert();
     }
 
     renderPvnFeed();
