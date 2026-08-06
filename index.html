@@ -248,7 +248,7 @@
     border: 1px solid var(--panel-border);
     border-radius: 12px;
     padding: 14px;
-    z-index: 950;
+    z-index: 1200;
     display: none;
     box-shadow: 0 8px 30px rgba(0,0,0,.6);
   }
@@ -989,65 +989,15 @@
     font-size: 10px;
     font-weight: 800;
   }
-  .compass-dial {
-    position: relative;
-    width: 170px;
-    height: 170px;
-    margin: 10px auto 6px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #1a0a0a 0%, #0d0404 100%);
-    border: 2px solid var(--panel-border);
-    touch-action: none;
-    user-select: none;
-  }
-  .compass-mark {
-    position: absolute;
-    color: #c98d8d;
-    font-size: 12px;
-    font-weight: 700;
-  }
-  .compass-mark.n { top: 6px; left: 50%; transform: translateX(-50%); }
-  .compass-mark.s { bottom: 6px; left: 50%; transform: translateX(-50%); }
-  .compass-mark.e { right: 8px; top: 50%; transform: translateY(-50%); }
-  .compass-mark.w { left: 8px; top: 50%; transform: translateY(-50%); }
-  .compass-arrow {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 6px;
-    height: 66px;
-    background: linear-gradient(180deg, var(--red) 0%, var(--red) 70%, transparent 70%);
-    border-radius: 3px;
-    transform-origin: 50% 100%;
-    transform: translate(-50%, -100%) rotate(0deg);
-    pointer-events: none;
-  }
-  .compass-arrow::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: 50%;
-    transform: translateX(-50%);
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-bottom: 14px solid var(--red);
-  }
-  .compass-center-dot {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #f0e0e0;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-  }
   .compass-value {
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
     color: #f0e0e0;
-    font-weight: 600;
+    font-weight: 700;
+    background: #1a0a0a;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px;
     margin-bottom: 6px;
   }
   .feed-arrow {
@@ -1055,6 +1005,38 @@
     width: 14px;
     height: 14px;
     vertical-align: middle;
+  }
+  /* Тулбар рисования направления БПЛА прямо на карте пальцем */
+  .pvn-draw-toolbar {
+    position: fixed;
+    left: 50%;
+    bottom: 160px;
+    transform: translateX(-50%);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: rgba(20,9,10,.97);
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    padding: 12px 16px;
+    z-index: 2000;
+    font-size: 12.5px;
+    color: #f0e0e0;
+    text-align: center;
+    max-width: min(320px, calc(100vw - 24px));
+    box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  }
+  .pvn-draw-toolbar.show { display: flex; }
+  .pvn-draw-toolbar button {
+    padding: 7px 16px;
+    border-radius: 16px;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #2a2020;
+    color: #e8d8d8;
   }
 
   .pvn-feed-toggle {
@@ -1400,16 +1382,8 @@
       <option value="bomber">Сброс боеприпасов</option>
       <option value="unknown">Неизвестно</option>
     </select>
-    <label>Направление полёта — потяните стрелку пальцем</label>
-    <div class="compass-dial" id="pvnCompassDial">
-      <span class="compass-mark n">С</span>
-      <span class="compass-mark e">В</span>
-      <span class="compass-mark s">Ю</span>
-      <span class="compass-mark w">З</span>
-      <div class="compass-arrow" id="pvnCompassArrow"></div>
-      <div class="compass-center-dot"></div>
-    </div>
-    <div class="compass-value" id="pvnCompassValue">Потяните стрелку, чтобы задать направление</div>
+    <label>Направление полёта</label>
+    <div class="compass-value" id="pvnCompassValue">—</div>
     <p class="nav-status" id="pvnUavStatus"></p>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="pvnUavCancelBtn">Отмена</button>
@@ -1418,7 +1392,13 @@
   </div>
 </div>
 
+<div class="pvn-draw-toolbar" id="pvnDrawToolbar">
+  <span>Проведите пальцем по карте — от места пролёта в сторону, куда летит БПЛА</span>
+  <button type="button" class="mt-cancel" id="pvnDrawCancelBtn">Отмена</button>
+</div>
+
 <div class="modal-overlay" id="nickModalOverlay">
+
   <div class="modal">
     <h2>Смена ника</h2>
     <label>Новый ник для чата</label>
@@ -1873,6 +1853,7 @@
 
   map.on('click', (e) => {
     if (typeof pvnPlacing !== 'undefined' && pvnPlacing) return;
+    if (typeof pvnUavDrawActive !== 'undefined' && pvnUavDrawActive) return;
     pendingLatLng = e.latlng;
     modalTitle.textContent = 'Новая отметка';
     overlay.classList.add('open');
@@ -2701,14 +2682,16 @@
     });
   });
 
-  // ---- "БПЛА пролетел": тип + направление, без координат ПВН, лента для всех ----
+  // ---- "БПЛА пролетел": свайп по карте задаёт направление, тип выбирается в окне ----
   const pvnUavBtn = document.getElementById('pvnUavBtn');
   const pvnUavModalOverlay = document.getElementById('pvnUavModalOverlay');
   const pvnUavStatus = document.getElementById('pvnUavStatus');
-  const pvnCompassDial = document.getElementById('pvnCompassDial');
-  const pvnCompassArrow = document.getElementById('pvnCompassArrow');
   const pvnCompassValue = document.getElementById('pvnCompassValue');
+  const pvnDrawToolbar = document.getElementById('pvnDrawToolbar');
   let pvnSelectedDeg = null; // 0-360, 0 = север, по часовой стрелке
+  let pvnUavDrawActive = false;
+  let pvnDrawStart = null;
+  let pvnDrawLine = null;
 
   const dirLabels8 = ['Север', 'Северо-восток', 'Восток', 'Юго-восток', 'Юг', 'Юго-запад', 'Запад', 'Северо-запад'];
   function degToLabel(deg) {
@@ -2716,38 +2699,55 @@
     return dirLabels8[idx];
   }
 
-  function setCompassAngle(deg) {
-    pvnSelectedDeg = Math.round(((deg % 360) + 360) % 360);
-    pvnCompassArrow.style.transform = `translate(-50%, -100%) rotate(${pvnSelectedDeg}deg)`;
-    pvnCompassValue.textContent = degToLabel(pvnSelectedDeg) + ' (' + pvnSelectedDeg + '°)';
+  function bearingBetween(lat1, lon1, lat2, lon2) {
+    const toRad = (d) => d * Math.PI / 180, toDeg = (r) => r * 180 / Math.PI;
+    const φ1 = toRad(lat1), φ2 = toRad(lat2), Δλ = toRad(lon2 - lon1);
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
   }
 
-  function angleFromEvent(clientX, clientY) {
-    const rect = pvnCompassDial.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = clientX - cx;
-    const dy = clientY - cy;
-    return Math.atan2(dx, -dy) * 180 / Math.PI; // 0 = вверх (север), по часовой стрелке
+  function clearPvnDrawLine() {
+    if (pvnDrawLine) { map.removeLayer(pvnDrawLine); pvnDrawLine = null; }
   }
 
-  let compassDragging = false;
-  pvnCompassDial.addEventListener('pointerdown', (e) => {
-    compassDragging = true;
-    pvnCompassDial.setPointerCapture(e.pointerId);
-    setCompassAngle(angleFromEvent(e.clientX, e.clientY));
-  });
-  pvnCompassDial.addEventListener('pointermove', (e) => {
-    if (!compassDragging) return;
-    setCompassAngle(angleFromEvent(e.clientX, e.clientY));
-  });
-  pvnCompassDial.addEventListener('pointerup', () => { compassDragging = false; });
-  pvnCompassDial.addEventListener('pointercancel', () => { compassDragging = false; });
+  function stopPvnDraw() {
+    pvnUavDrawActive = false;
+    pvnDrawStart = null;
+    clearPvnDrawLine();
+    map.dragging.enable();
+    pvnDrawToolbar.classList.remove('show');
+  }
 
   pvnUavBtn.addEventListener('click', () => {
-    pvnSelectedDeg = null;
-    pvnCompassArrow.style.transform = 'translate(-50%, -100%) rotate(0deg)';
-    pvnCompassValue.textContent = 'Потяните стрелку, чтобы задать направление';
+    pvnUavDrawActive = true;
+    pvnDrawStart = null;
+    map.dragging.disable();
+    pvnDrawToolbar.classList.add('show');
+  });
+
+  document.getElementById('pvnDrawCancelBtn').addEventListener('click', () => {
+    stopPvnDraw();
+  });
+
+  map.on('mousedown', (e) => {
+    if (!pvnUavDrawActive) return;
+    pvnDrawStart = e.latlng;
+  });
+  map.on('mousemove', (e) => {
+    if (!pvnUavDrawActive || !pvnDrawStart) return;
+    clearPvnDrawLine();
+    pvnDrawLine = L.polyline([pvnDrawStart, e.latlng], { color: '#3aa0ff', weight: 4, dashArray: '2,8' }).addTo(map);
+  });
+  map.on('mouseup', (e) => {
+    if (!pvnUavDrawActive || !pvnDrawStart) return;
+    const start = pvnDrawStart;
+    const end = e.latlng;
+    const dist = start.distanceTo(end);
+    stopPvnDraw();
+    if (dist < 15) return; // слишком короткий свайп — не засчитываем, кнопку можно нажать снова
+    pvnSelectedDeg = Math.round(bearingBetween(start.lat, start.lng, end.lat, end.lng));
+    pvnCompassValue.textContent = degToLabel(pvnSelectedDeg) + ' (' + pvnSelectedDeg + '°)';
     pvnUavStatus.textContent = '';
     pvnUavModalOverlay.classList.add('open');
   });
@@ -2758,7 +2758,7 @@
 
   document.getElementById('pvnUavSaveBtn').addEventListener('click', async () => {
     if (pvnSelectedDeg === null) {
-      pvnUavStatus.textContent = 'Задайте направление полёта, потянув стрелку.';
+      pvnUavStatus.textContent = 'Направление не задано — нажмите «БПЛА пролетел» и проведите пальцем по карте.';
       return;
     }
     try {
