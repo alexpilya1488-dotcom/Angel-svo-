@@ -17,6 +17,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
 <style>
   :root{
     --red: #ff2b2b;
@@ -44,6 +45,10 @@
   #map {
     position: absolute;
     inset: 0;
+  }
+  /* Тёмные тайлы CARTO по умолчанию слишком тёмные — сильно приподнимаем яркость/контраст */
+  .leaflet-tile-pane {
+    filter: brightness(1.9) contrast(1.08) saturate(1.15);
   }
   header {
     flex: 0 0 auto;
