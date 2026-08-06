@@ -1807,6 +1807,8 @@
     try {
       await addDoc(marksCollection, {
         type: 'mine',
+        lat: pointsToSave[0].lat,
+        lng: pointsToSave[0].lng,
         points: pointsToSave,
         comment: '',
         confirmedBy: [],
