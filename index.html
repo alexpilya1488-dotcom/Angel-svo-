@@ -989,36 +989,80 @@
     font-size: 10px;
     font-weight: 800;
   }
-  .compass-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    margin: 6px 0 4px;
+  .compass-dial {
+    position: relative;
+    width: 170px;
+    height: 170px;
+    margin: 10px auto 6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #1a0a0a 0%, #0d0404 100%);
+    border: 2px solid var(--panel-border);
+    touch-action: none;
+    user-select: none;
   }
-  .compass-btn {
-    padding: 10px 0;
-    border-radius: 8px;
-    border: 1px solid var(--panel-border);
-    background: #1a0a0a;
-    color: #d9b8b8;
-    font-size: 13px;
+  .compass-mark {
+    position: absolute;
+    color: #c98d8d;
+    font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
+  }
+  .compass-mark.n { top: 6px; left: 50%; transform: translateX(-50%); }
+  .compass-mark.s { bottom: 6px; left: 50%; transform: translateX(-50%); }
+  .compass-mark.e { right: 8px; top: 50%; transform: translateY(-50%); }
+  .compass-mark.w { left: 8px; top: 50%; transform: translateY(-50%); }
+  .compass-arrow {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 6px;
+    height: 66px;
+    background: linear-gradient(180deg, var(--red) 0%, var(--red) 70%, transparent 70%);
+    border-radius: 3px;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(0deg);
+    pointer-events: none;
+  }
+  .compass-arrow::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 14px solid var(--red);
+  }
+  .compass-center-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f0e0e0;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .compass-value {
     text-align: center;
+    font-size: 13px;
+    color: #f0e0e0;
+    font-weight: 600;
+    margin-bottom: 6px;
   }
-  .compass-btn.active {
-    background: linear-gradient(180deg,var(--red),var(--red-dark));
-    color: white;
-    border-color: rgba(255,80,80,.6);
+  .feed-arrow {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
   }
-  .compass-btn.empty { visibility: hidden; }
 
   .pvn-feed-toggle {
-    position: fixed;
-    left: 12px;
-    bottom: 20px;
-    width: 48px;
-    height: 48px;
+    position: absolute;
+    right: 12px;
+    top: 190px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1027,21 +1071,21 @@
     color: white;
     border: none;
     cursor: pointer;
-    z-index: 900;
+    z-index: 950;
     box-shadow: 0 0 18px rgba(255,0,0,.4);
   }
   .pvn-feed-panel {
-    position: fixed;
-    left: 12px;
-    bottom: 78px;
-    width: min(320px, calc(100vw - 24px));
-    max-height: 50vh;
+    position: absolute;
+    right: 12px;
+    top: 236px;
+    width: min(300px, calc(100vw - 24px));
+    max-height: 45vh;
     overflow-y: auto;
     background: rgba(14,6,6,.97);
     border: 1px solid var(--panel-border);
     border-radius: 14px;
     padding: 12px;
-    z-index: 900;
+    z-index: 950;
     display: none;
     box-shadow: 0 8px 30px rgba(0,0,0,.6);
   }
@@ -1356,18 +1400,16 @@
       <option value="bomber">Сброс боеприпасов</option>
       <option value="unknown">Неизвестно</option>
     </select>
-    <label>Направление полёта</label>
-    <div class="compass-grid" id="pvnCompass">
-      <button type="button" class="compass-btn" data-dir="NW">СЗ</button>
-      <button type="button" class="compass-btn" data-dir="N">С</button>
-      <button type="button" class="compass-btn" data-dir="NE">СВ</button>
-      <button type="button" class="compass-btn" data-dir="W">З</button>
-      <button type="button" class="compass-btn empty" data-dir=""></button>
-      <button type="button" class="compass-btn" data-dir="E">В</button>
-      <button type="button" class="compass-btn" data-dir="SW">ЮЗ</button>
-      <button type="button" class="compass-btn" data-dir="S">Ю</button>
-      <button type="button" class="compass-btn" data-dir="SE">ЮВ</button>
+    <label>Направление полёта — потяните стрелку пальцем</label>
+    <div class="compass-dial" id="pvnCompassDial">
+      <span class="compass-mark n">С</span>
+      <span class="compass-mark e">В</span>
+      <span class="compass-mark s">Ю</span>
+      <span class="compass-mark w">З</span>
+      <div class="compass-arrow" id="pvnCompassArrow"></div>
+      <div class="compass-center-dot"></div>
     </div>
+    <div class="compass-value" id="pvnCompassValue">Потяните стрелку, чтобы задать направление</div>
     <p class="nav-status" id="pvnUavStatus"></p>
     <div class="modal-actions">
       <button class="btn btn-secondary" id="pvnUavCancelBtn">Отмена</button>
@@ -1414,7 +1456,7 @@
 
     <h3>Режимы</h3>
     <p><b>Водитель</b> — обычный режим: навигатор, все отметки на карте, геолокация.</p>
-    <p><b>ПВН</b> — скрывает навигатор и геолокацию. Кнопка «Моя точка» ставит вашу личную точку на карте — её видите только вы (и Хаски), больше никто. Кнопка «БПЛА пролетел» отправляет в общую ленту тип и направление полёта БПЛА, без вашей точки и удалённости — это видят все. Запись в ленте держится 10 минут. В ленте вы можете отметить БПЛА как сбитый.</p>
+    <p><b>ПВН</b> — скрывает навигатор и геолокацию. Кнопка «Моя точка» ставит вашу личную точку на карте — её видите только вы, больше никто; удалить точку можно, нажав на неё. Кнопка «БПЛА пролетел» отправляет в общую ленту тип и направление полёта БПЛА (направление задаётся стрелкой на компасе), без вашей точки и удалённости — это видят все. Запись в ленте держится 10 минут. В ленте вы можете отметить БПЛА как сбитый.</p>
     <p><b>Пилот</b> — видит ленту «БПЛА в эфире» и может нажать «Лечу» на записи о БПЛА — это покажет всем, что пилот выдвинулся на перехват.</p>
 
     <div class="info-link-block">
@@ -2631,11 +2673,18 @@
     iconAnchor: [13, 13]
   });
 
+  window.__deletePvnPoint = async () => {
+    if (!confirm('Удалить вашу точку ПВН?')) return;
+    await deleteDoc(doc(db, 'pvnPoints', OWNER_ID)).catch(() => {});
+    myPvnPoint = null;
+  };
+
   onSnapshot(pvnPointsCollection, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
       const id = change.doc.id;
       if (change.type === 'removed') {
         if (pvnPointMarkers[id]) { map.removeLayer(pvnPointMarkers[id]); delete pvnPointMarkers[id]; }
+        if (id === OWNER_ID) myPvnPoint = null;
         return;
       }
       const data = change.doc.data();
@@ -2643,8 +2692,11 @@
       if (id !== OWNER_ID && !isHusky()) return;
       if (id === OWNER_ID) myPvnPoint = { lat: data.lat, lng: data.lng };
       if (pvnPointMarkers[id]) { map.removeLayer(pvnPointMarkers[id]); }
+      const popupHtml = id === OWNER_ID
+        ? 'Ваша точка ПВН<br><button class="btn-delete" style="margin-top:6px" onclick="window.__deletePvnPoint()">Удалить точку</button>'
+        : `Точка ПВН: ${escapeHtml(data.nickname || 'без ника')}`;
       pvnPointMarkers[id] = L.marker([data.lat, data.lng], { icon: pvnPointIcon })
-        .bindPopup(id === OWNER_ID ? 'Ваша точка ПВН' : `Точка ПВН: ${escapeHtml(data.nickname || 'без ника')}`)
+        .bindPopup(popupHtml)
         .addTo(map);
     });
   });
@@ -2653,39 +2705,66 @@
   const pvnUavBtn = document.getElementById('pvnUavBtn');
   const pvnUavModalOverlay = document.getElementById('pvnUavModalOverlay');
   const pvnUavStatus = document.getElementById('pvnUavStatus');
-  const pvnCompass = document.getElementById('pvnCompass');
-  let pvnSelectedDir = null;
+  const pvnCompassDial = document.getElementById('pvnCompassDial');
+  const pvnCompassArrow = document.getElementById('pvnCompassArrow');
+  const pvnCompassValue = document.getElementById('pvnCompassValue');
+  let pvnSelectedDeg = null; // 0-360, 0 = север, по часовой стрелке
+
+  const dirLabels8 = ['Север', 'Северо-восток', 'Восток', 'Юго-восток', 'Юг', 'Юго-запад', 'Запад', 'Северо-запад'];
+  function degToLabel(deg) {
+    const idx = Math.round(((deg % 360) + 360) % 360 / 45) % 8;
+    return dirLabels8[idx];
+  }
+
+  function setCompassAngle(deg) {
+    pvnSelectedDeg = Math.round(((deg % 360) + 360) % 360);
+    pvnCompassArrow.style.transform = `translate(-50%, -100%) rotate(${pvnSelectedDeg}deg)`;
+    pvnCompassValue.textContent = degToLabel(pvnSelectedDeg) + ' (' + pvnSelectedDeg + '°)';
+  }
+
+  function angleFromEvent(clientX, clientY) {
+    const rect = pvnCompassDial.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    return Math.atan2(dx, -dy) * 180 / Math.PI; // 0 = вверх (север), по часовой стрелке
+  }
+
+  let compassDragging = false;
+  pvnCompassDial.addEventListener('pointerdown', (e) => {
+    compassDragging = true;
+    pvnCompassDial.setPointerCapture(e.pointerId);
+    setCompassAngle(angleFromEvent(e.clientX, e.clientY));
+  });
+  pvnCompassDial.addEventListener('pointermove', (e) => {
+    if (!compassDragging) return;
+    setCompassAngle(angleFromEvent(e.clientX, e.clientY));
+  });
+  pvnCompassDial.addEventListener('pointerup', () => { compassDragging = false; });
+  pvnCompassDial.addEventListener('pointercancel', () => { compassDragging = false; });
 
   pvnUavBtn.addEventListener('click', () => {
-    pvnSelectedDir = null;
-    pvnCompass.querySelectorAll('.compass-btn').forEach((b) => b.classList.remove('active'));
+    pvnSelectedDeg = null;
+    pvnCompassArrow.style.transform = 'translate(-50%, -100%) rotate(0deg)';
+    pvnCompassValue.textContent = 'Потяните стрелку, чтобы задать направление';
     pvnUavStatus.textContent = '';
     pvnUavModalOverlay.classList.add('open');
-  });
-
-  pvnCompass.querySelectorAll('.compass-btn[data-dir]:not(.empty)').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      pvnSelectedDir = btn.dataset.dir;
-      pvnCompass.querySelectorAll('.compass-btn').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
   });
 
   document.getElementById('pvnUavCancelBtn').addEventListener('click', () => {
     pvnUavModalOverlay.classList.remove('open');
   });
 
-  const dirLabels = { N: 'Север', NE: 'Северо-восток', E: 'Восток', SE: 'Юго-восток', S: 'Юг', SW: 'Юго-запад', W: 'Запад', NW: 'Северо-запад' };
-
   document.getElementById('pvnUavSaveBtn').addEventListener('click', async () => {
-    if (!pvnSelectedDir) {
-      pvnUavStatus.textContent = 'Выберите направление полёта.';
+    if (pvnSelectedDeg === null) {
+      pvnUavStatus.textContent = 'Задайте направление полёта, потянув стрелку.';
       return;
     }
     try {
       await addDoc(pvnSightingsCollection, {
         subtype: document.getElementById('pvnUavSubtype').value,
-        direction: pvnSelectedDir,
+        direction: String(pvnSelectedDeg),
         ownerId: OWNER_ID,
         pilotEngaged: false,
         pilotNickname: null,
@@ -2715,6 +2794,14 @@
     return min + ' мин назад';
   }
 
+  const legacyDirDeg = { N: 0, NE: 45, E: 90, SE: 135, S: 180, SW: 225, W: 270, NW: 315 };
+  function sightingDirInfo(direction) {
+    const num = Number(direction);
+    if (direction !== '' && !Number.isNaN(num)) return { deg: num, label: degToLabel(num) };
+    const deg = legacyDirDeg[direction] ?? 0;
+    return { deg, label: degToLabel(deg) };
+  }
+
   function renderPvnFeed() {
     const ids = Object.keys(pvnSightings).sort((a, b) =>
       (pvnSightings[b].createdAt?.toDate?.() || 0) - (pvnSightings[a].createdAt?.toDate?.() || 0));
@@ -2725,6 +2812,7 @@
     pvnFeedList.innerHTML = ids.map((id) => {
       const s = pvnSightings[id];
       const typeLabel = uavSubtypeLabels[s.subtype] || s.subtype;
+      const dirInfo = sightingDirInfo(s.direction);
       let actions = '';
       if (appMode === 'pilot' && !s.pilotEngaged) {
         actions += `<button class="pvn-fly-btn" onclick="window.__pvnFly('${id}')">Лечу</button>`;
@@ -2733,7 +2821,8 @@
         actions += `<button class="pvn-down-btn" onclick="window.__pvnDown('${id}')">Сбит</button>`;
       }
       return `<div class="pvn-feed-item">
-        <div class="pvn-feed-title"><span>БПЛА: ${escapeHtml(typeLabel)}</span><span>${dirLabels[s.direction] || s.direction}</span></div>
+        <div class="pvn-feed-title"><span>БПЛА: ${escapeHtml(typeLabel)}</span>
+          <span><svg class="feed-arrow" viewBox="0 0 24 24" fill="none" style="transform:rotate(${dirInfo.deg}deg)"><path d="M12 3v14M12 3l-5 5M12 3l5 5" stroke="#f0e0e0" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> ${dirInfo.label}</span></div>
         <div class="pvn-feed-meta">${timeAgoLabel(s.createdAt)}</div>
         ${s.pilotEngaged ? `<div class="pvn-feed-engaged">🛩 Пилот вылетел на перехват</div>` : ''}
         ${actions ? `<div class="pvn-feed-actions">${actions}</div>` : ''}
