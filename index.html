@@ -218,11 +218,70 @@
     color: white;
     box-shadow: 0 0 18px rgba(255,0,0,.4);
   }
+  .mine-toggle {
+    position: fixed;
+    top: calc(50% + 140px);
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 13px;
+    border-radius: 20px;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    color: #f0e0e0;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    z-index: 900;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .mine-toggle.active {
+    background: linear-gradient(180deg,#8a6d1e,#4a3a0f);
+    border-color: rgba(220,180,60,.7);
+    color: white;
+    box-shadow: 0 0 18px rgba(220,180,60,.5);
+  }
+  /* Тулбар рисования мин — выше нижних кнопок, чтобы точно не перекрываться и не терять тапы */
+  .mine-toolbar {
+    position: fixed;
+    left: 50%;
+    bottom: 160px;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: rgba(20,9,10,.97);
+    border: 1px solid var(--panel-border);
+    border-radius: 26px;
+    padding: 10px 16px;
+    z-index: 2000;
+    font-size: 12.5px;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,.6);
+    pointer-events: auto;
+  }
+  .mine-toolbar.show { display: flex; }
+  .mine-toolbar button {
+    padding: 8px 16px;
+    border-radius: 16px;
+    border: none;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .mine-toolbar .mt-cancel { background: #2a2020; color: #e8d8d8; }
+  .mine-toolbar .mt-done { background: linear-gradient(180deg,var(--red),var(--red-dark)); color: white; }
+  .mine-toolbar .mt-done.ready {
+    background: linear-gradient(180deg,#16a34a,#0f6b2c);
+    box-shadow: 0 0 12px rgba(22,163,74,.6);
+  }
 
-  /* Меню (гамбургер) и кнопка информации */
+  /* Меню (гамбургер) и кнопка информации — обе в правом верхнем углу, меню под info */
   .menu-toggle, .info-toggle {
     position: absolute;
-    top: 54px;
+    right: 12px;
     width: 38px;
     height: 38px;
     border-radius: 50%;
@@ -236,13 +295,13 @@
     z-index: 950;
     box-shadow: 0 0 10px rgba(255,0,0,.15);
   }
-  .menu-toggle { left: 12px; }
-  .info-toggle { right: 12px; }
+  .info-toggle { top: 54px; }
+  .menu-toggle { top: 102px; }
 
   .menu-panel {
     position: absolute;
-    top: 98px;
-    left: 12px;
+    top: 146px;
+    right: 12px;
     width: 220px;
     background: rgba(20,9,10,.96);
     border: 1px solid var(--panel-border);
@@ -332,6 +391,54 @@
     line-height: 1.5;
     margin: 0 0 6px;
   }
+  .info-link-block {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,0,0,.18);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+  .info-link-block img {
+    width: 140px;
+    height: 140px;
+    border-radius: 10px;
+    background: #fff;
+    padding: 6px;
+  }
+  .info-link-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    background: #1a0a0a;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .info-link-row input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    color: #d9b8b8;
+    font-size: 11px;
+    outline: none;
+  }
+  .info-copy-btn {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(180deg,var(--red),var(--red-dark));
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .info-copy-btn.copied { background: #16a34a; }
   .my-location-dot {
     width: 16px;
     height: 16px;
@@ -472,58 +579,6 @@
     border: 1.5px solid rgba(220,180,60,.7);
     box-shadow: 0 0 10px rgba(220,180,60,.5);
   }
-  .mine-toggle {
-    position: fixed;
-    top: calc(50% + 140px);
-    left: 12px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 13px;
-    border-radius: 20px;
-    background: linear-gradient(180deg,#2b0d0d,#150505);
-    border: 1px solid var(--panel-border);
-    color: #f0e0e0;
-    font-size: 13px;
-    white-space: nowrap;
-    cursor: pointer;
-    z-index: 900;
-    box-shadow: 0 0 10px rgba(255,0,0,.15);
-  }
-  .mine-toggle.active {
-    background: linear-gradient(180deg,#8a6d1e,#4a3a0f);
-    border-color: rgba(220,180,60,.7);
-    color: white;
-    box-shadow: 0 0 18px rgba(220,180,60,.5);
-  }
-  .mine-toolbar {
-    position: fixed;
-    left: 50%;
-    bottom: 90px;
-    transform: translateX(-50%);
-    display: none;
-    align-items: center;
-    gap: 10px;
-    background: rgba(20,9,10,.95);
-    border: 1px solid var(--panel-border);
-    border-radius: 26px;
-    padding: 10px 16px;
-    z-index: 950;
-    font-size: 12.5px;
-    white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(0,0,0,.5);
-  }
-  .mine-toolbar.show { display: flex; }
-  .mine-toolbar button {
-    padding: 7px 14px;
-    border-radius: 16px;
-    border: none;
-    font-size: 12.5px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .mine-toolbar .mt-cancel { background: #2a2020; color: #e8d8d8; }
-  .mine-toolbar .mt-done { background: linear-gradient(180deg,var(--red),var(--red-dark)); color: white; }
   .legend span.dot {
     display: inline-block;
     width: 10px;
@@ -1012,7 +1067,7 @@
     <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
     <div><span class="dot" style="background:#f59e0b"></span>Повреждённая техника</div>
     <div><span class="dot" style="background:#a855f7"></span>Другое</div>
-    <div><span class="dot" style="background:#8a6d1e"></span>Мины — линия минирования, значок танковой мины. Хранится 24 часа (обычные метки — 30 минут)</div>
+    <div><span class="dot" style="background:#8a6d1e"></span>Мины — кнопка «Мины», рисуется точками по линии минирования, значок танковой мины. Хранится 24 часа (обычные метки — 30 минут). Досрочно удалить может только тот, кто поставил, либо Хаски</div>
   </div>
 
   <button class="geoloc-toggle" id="geolocToggle">
@@ -1043,9 +1098,9 @@
   </button>
 
   <div class="mine-toolbar" id="mineToolbar">
-    <span id="mineToolbarHint">Отмечайте точки на линии минирования</span>
-    <button class="mt-cancel" id="mineCancelBtn">Отмена</button>
-    <button class="mt-done" id="mineDoneBtn">Готово</button>
+    <span id="mineToolbarHint">Точки: 0</span>
+    <button type="button" class="mt-cancel" id="mineCancelBtn">Отмена</button>
+    <button type="button" class="mt-done" id="mineDoneBtn">Готово</button>
   </div>
 
   <div class="sky-toast" id="skyToast">Смотри за небом!</div>
@@ -1182,7 +1237,7 @@
     <p>Клик по карте — добавить отметку (БПЛА-угроза, повреждённая техника, другое). Кнопка «Отметить здесь» добавляет отметку по вашей геолокации. Точечные отметки удаляются автоматически через 30 минут — подтверждайте или опровергайте их, чтобы карта оставалась актуальной.</p>
 
     <h3>Мины</h3>
-    <p>Кнопка «Мины» включает режим рисования: нажимайте на карте точки вдоль линии минирования, затем «Готово» — на карте появится полоса со значками мин. Хранится 24 часа. Удалить раньше срока может тот, кто её поставил.</p>
+    <p>Кнопка «Мины» включает режим рисования: нажимайте на карте точки вдоль линии минирования, затем «Готово» — появится линия со значками танковых мин. Хранится 24 часа. Досрочно удалить может только тот, кто её поставил, либо пользователь с ником «Хаски» — у него право удалять любые метки.</p>
 
     <h3>Геолокация и навигатор</h3>
     <p>Кнопка «Геолокация» показывает вас на карте и предупреждает звуком и надписью «Внимание» при входе в опасную зону. Кнопка «Навигатор» строит маршрут до нужного населённого пункта, проверяет его на опасные участки и во время поездки следит за дорогой.</p>
@@ -1194,7 +1249,16 @@
     <p>Общий чат внизу справа. На иконке чата — счётчик непрочитанных сообщений. Свои сообщения можно редактировать, изменённые помечаются подписью «изменено».</p>
 
     <h3>Меню</h3>
-    <p>В меню (значок с тремя полосками) — переключение светлой/тёмной темы карты и смена ника в чате.</p>
+    <p>В меню (значок с тремя полосками, под кнопкой «i») — переключение светлой/тёмной темы карты и смена ника в чате.</p>
+
+    <div class="info-link-block">
+      <p style="margin:0">Ссылка на приложение может меняться, будьте в курсе изменений: присоединяйтесь к чату по ссылке.</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fmax.ru%2Fjoin%2F6wqtElsQIwl84irOMW1SwH7EjYTf45xaguXpNgggPo" alt="QR-код чата" loading="lazy">
+      <div class="info-link-row">
+        <input type="text" id="chatLinkInput" value="https://max.ru/join/6wqtElsQIwl84irOMW1SwH7EjYTf45xaguXpNgggPo" readonly>
+        <button class="info-copy-btn" id="chatLinkCopyBtn">Копировать</button>
+      </div>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-primary" id="infoCloseBtn">Понятно</button>
@@ -1494,25 +1558,24 @@
     let marker;
     let droneMarker = null;
     let mineIcons = null;
+    const mineIconHtml = '<div class="mine-icon"><svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="12" cy="12" r="10" fill="#4a4a2e" stroke="#0a0a0a" stroke-width="1.3"/>' +
+      '<circle cx="12" cy="12" r="6.5" fill="#5c5c38" stroke="#0a0a0a" stroke-width="1"/>' +
+      '<circle cx="12" cy="12" r="2.4" fill="#dc2626"/>' +
+      '<path d="M12 1.5v2.3M12 20.2v2.3M1.5 12h2.3M20.2 12h2.3" stroke="#0a0a0a" stroke-width="1.4" stroke-linecap="round"/>' +
+      '</svg></div>';
+    const mineIcon = L.divIcon({ className: '', html: mineIconHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
     if (data.type === 'mine' && Array.isArray(data.points) && data.points.length >= 2) {
       marker = L.polyline(data.points, {
-        color: meta.color,
+        color: '#e0b93c',
         weight: 6,
         dashArray: '10,8',
         opacity: 0.95
       }).addTo(map);
-      const mineIcon = L.divIcon({
-        className: '',
-        html: '<div class="mine-icon"><svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">' +
-          '<circle cx="12" cy="12" r="10" fill="#4a4a2e" stroke="#0a0a0a" stroke-width="1.3"/>' +
-          '<circle cx="12" cy="12" r="6.5" fill="#5c5c38" stroke="#0a0a0a" stroke-width="1"/>' +
-          '<circle cx="12" cy="12" r="2.4" fill="#dc2626"/>' +
-          '<path d="M12 1.5v2.3M12 20.2v2.3M1.5 12h2.3M20.2 12h2.3" stroke="#0a0a0a" stroke-width="1.4" stroke-linecap="round"/>' +
-          '</svg></div>',
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
       mineIcons = data.points.map((p) => L.marker(p, { icon: mineIcon, interactive: false }).addTo(map));
+      marker.bindPopup(buildPopupContent(id, data));
+    } else if (data.type === 'mine') {
+      marker = L.marker([data.lat, data.lng], { icon: mineIcon }).addTo(map);
       marker.bindPopup(buildPopupContent(id, data));
     } else if (data.type === 'uav' && data.radius) {
       marker = L.circle([data.lat, data.lng], {
@@ -1665,6 +1728,7 @@
   // ---- Мины: режим рисования линии по точкам ----
   const mineToggle = document.getElementById('mineToggle');
   const mineToolbar = document.getElementById('mineToolbar');
+  const mineToolbarHint = document.getElementById('mineToolbarHint');
   const mineCancelBtn = document.getElementById('mineCancelBtn');
   const mineDoneBtn = document.getElementById('mineDoneBtn');
   let mineDrawActive = false;
@@ -1679,11 +1743,19 @@
     if (minePoints.length) {
       minePreviewLine = L.polyline(minePoints, { color: '#e0b93c', weight: 5, dashArray: '10,8', opacity: 0.95 }).addTo(map);
       minePoints.forEach((p) => {
-        minePreviewDots.push(L.circleMarker(p, { radius: 5, color: '#fff', weight: 2, fillColor: '#e0b93c', fillOpacity: 1 }).addTo(map));
+        minePreviewDots.push(L.circleMarker(p, { radius: 5, color: '#fff', weight: 2, fillColor: '#e0b93c', fillOpacity: 1, interactive: false }).addTo(map));
       });
     }
-    mineDoneBtn.disabled = minePoints.length < 2;
-    mineDoneBtn.style.opacity = minePoints.length < 2 ? 0.5 : 1;
+    mineToolbarHint.textContent = 'Точки: ' + minePoints.length + (minePoints.length < 2 ? ' (нужно минимум 2)' : '');
+    mineDoneBtn.classList.toggle('ready', minePoints.length >= 2);
+  }
+
+  function resetMineDraw() {
+    mineDrawActive = false;
+    mineToggle.classList.remove('active');
+    mineToolbar.classList.remove('show');
+    minePoints = [];
+    updateMinePreview();
   }
 
   mineToggle.addEventListener('click', () => {
@@ -1700,30 +1772,34 @@
     }
   });
 
-  mineCancelBtn.addEventListener('click', () => {
-    mineDrawActive = false;
-    mineToggle.classList.remove('active');
-    mineToolbar.classList.remove('show');
-    minePoints = [];
-    updateMinePreview();
+  mineCancelBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    resetMineDraw();
   });
 
-  mineDoneBtn.addEventListener('click', async () => {
-    if (minePoints.length < 2) return;
-    await addDoc(marksCollection, {
-      type: 'mine',
-      points: minePoints.map((p) => [p.lat, p.lng]),
-      comment: '',
-      confirmedBy: [],
-      deniedBy: [],
-      ownerId: OWNER_ID,
-      createdAt: serverTimestamp()
-    });
-    mineDrawActive = false;
-    mineToggle.classList.remove('active');
-    mineToolbar.classList.remove('show');
-    minePoints = [];
-    updateMinePreview();
+  // Кнопка "Готово" НЕ блокируется через disabled — только проверка внутри обработчика,
+  // чтобы тап на мобильном точно доходил до клика.
+  mineDoneBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (minePoints.length < 2) {
+      mineToolbarHint.textContent = 'Отметьте минимум 2 точки на карте';
+      return;
+    }
+    const pointsToSave = minePoints.map((p) => [p.lat, p.lng]);
+    resetMineDraw();
+    try {
+      await addDoc(marksCollection, {
+        type: 'mine',
+        points: pointsToSave,
+        comment: '',
+        confirmedBy: [],
+        deniedBy: [],
+        ownerId: OWNER_ID,
+        createdAt: serverTimestamp()
+      });
+    } catch (err) {
+      alert('Не удалось сохранить линию минирования: ' + err.message);
+    }
   });
 
   // ---- Оповещение о приближении к опасной зоне ----
@@ -1808,9 +1884,9 @@
   }
 
   // Универсально достаёт точки метки: для точечных меток — одна пара координат,
-  // для мин (линия) — весь массив точек линии.
+  // для мин-линии — весь массив точек линии.
   function getMarkPoints(data) {
-    if (data.type === 'mine' && Array.isArray(data.points)) return data.points;
+    if (data.type === 'mine' && Array.isArray(data.points) && data.points.length) return data.points;
     if (data.lat != null && data.lng != null) return [[data.lat, data.lng]];
     return [];
   }
@@ -2122,11 +2198,24 @@
     menuPanel.classList.toggle('open');
   });
 
+  const HUSKY_CODE = '2004';
+
   menuNickBtn.addEventListener('click', () => {
     const newName = prompt('Введите новый ник для чата:', NICKNAME);
     if (newName === null) return;
     const trimmed = newName.trim();
     if (!trimmed) return;
+    if (trimmed.toLowerCase() === 'хаски') {
+      const code = prompt('Ник «Хаски» даёт право удалять любые метки. Введите код доступа:');
+      if (code === null) return;
+      if (code.trim() !== HUSKY_CODE) {
+        alert('Неверный код. Ник не изменён.');
+        return;
+      }
+      setNickname('Хаски');
+      refreshMenuNick();
+      return;
+    }
     setNickname(trimmed);
     refreshMenuNick();
   });
@@ -2145,6 +2234,25 @@
   });
   document.getElementById('infoCloseBtn').addEventListener('click', () => {
     infoModalOverlay.classList.remove('open');
+  });
+
+  const chatLinkCopyBtn = document.getElementById('chatLinkCopyBtn');
+  chatLinkCopyBtn.addEventListener('click', async () => {
+    const input = document.getElementById('chatLinkInput');
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch (e) {
+      input.removeAttribute('readonly');
+      input.select();
+      document.execCommand('copy');
+      input.setAttribute('readonly', 'true');
+    }
+    chatLinkCopyBtn.textContent = 'Скопировано';
+    chatLinkCopyBtn.classList.add('copied');
+    setTimeout(() => {
+      chatLinkCopyBtn.textContent = 'Копировать';
+      chatLinkCopyBtn.classList.remove('copied');
+    }, 1800);
   });
 
   // ---- Навигатор: поиск населённых пунктов, построение маршрута, проверка дороги ----
