@@ -2716,6 +2716,7 @@
     pvnDrawStart = null;
     clearPvnDrawLine();
     map.dragging.enable();
+    map.getContainer().style.touchAction = '';
     pvnDrawToolbar.classList.remove('show');
   }
 
@@ -2723,6 +2724,7 @@
     pvnUavDrawActive = true;
     pvnDrawStart = null;
     map.dragging.disable();
+    map.getContainer().style.touchAction = 'none';
     pvnDrawToolbar.classList.add('show');
   });
 
@@ -2730,19 +2732,27 @@
     stopPvnDraw();
   });
 
-  map.on('mousedown', (e) => {
+  // Свайп ловим напрямую через Pointer Events на контейнере карты, а не через
+  // map.on('mousemove'...) — у Leaflet эти "мышиные" события ненадёжно приходят
+  // при touch-перетаскивании на телефоне (именно поэтому раньше стрелка не работала).
+  const mapContainer = map.getContainer();
+
+  mapContainer.addEventListener('pointerdown', (e) => {
     if (!pvnUavDrawActive) return;
-    pvnDrawStart = e.latlng;
+    pvnDrawStart = map.mouseEventToLatLng(e);
+    mapContainer.setPointerCapture(e.pointerId);
   });
-  map.on('mousemove', (e) => {
+  mapContainer.addEventListener('pointermove', (e) => {
     if (!pvnUavDrawActive || !pvnDrawStart) return;
+    e.preventDefault();
+    const cur = map.mouseEventToLatLng(e);
     clearPvnDrawLine();
-    pvnDrawLine = L.polyline([pvnDrawStart, e.latlng], { color: '#3aa0ff', weight: 4, dashArray: '2,8' }).addTo(map);
-  });
-  map.on('mouseup', (e) => {
+    pvnDrawLine = L.polyline([pvnDrawStart, cur], { color: '#3aa0ff', weight: 4, dashArray: '2,8' }).addTo(map);
+  }, { passive: false });
+  mapContainer.addEventListener('pointerup', (e) => {
     if (!pvnUavDrawActive || !pvnDrawStart) return;
     const start = pvnDrawStart;
-    const end = e.latlng;
+    const end = map.mouseEventToLatLng(e);
     const dist = start.distanceTo(end);
     stopPvnDraw();
     if (dist < 15) return; // слишком короткий свайп — не засчитываем, кнопку можно нажать снова
@@ -2750,6 +2760,10 @@
     pvnCompassValue.textContent = degToLabel(pvnSelectedDeg) + ' (' + pvnSelectedDeg + '°)';
     pvnUavStatus.textContent = '';
     pvnUavModalOverlay.classList.add('open');
+  });
+  mapContainer.addEventListener('pointercancel', () => {
+    if (!pvnUavDrawActive) return;
+    stopPvnDraw();
   });
 
   document.getElementById('pvnUavCancelBtn').addEventListener('click', () => {
