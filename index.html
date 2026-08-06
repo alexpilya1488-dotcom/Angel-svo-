@@ -114,7 +114,7 @@
   }
   .legend {
     position: fixed;
-    top: calc(50% + 178px);
+    bottom: calc(50% + 24px);
     left: 12px;
     background: rgba(20,9,10,.92);
     border: 1px solid var(--panel-border);
@@ -128,9 +128,6 @@
   .legend.open { display: block; }
 
   .theme-toggle {
-    position: fixed;
-    top: calc(50% + 38px);
-    left: 12px;
     width: 62px;
     height: 32px;
     border-radius: 20px;
@@ -141,7 +138,6 @@
     justify-content: space-between;
     padding: 0 8px;
     cursor: pointer;
-    z-index: 900;
     box-shadow: 0 0 10px rgba(255,0,0,.15);
   }
   .theme-icon {
@@ -174,7 +170,7 @@
 
   .geoloc-toggle {
     position: fixed;
-    top: calc(50% + 78px);
+    top: calc(50% + 40px);
     left: 12px;
     display: flex;
     align-items: center;
@@ -198,7 +194,7 @@
   }
   .nav-toggle {
     position: fixed;
-    top: calc(50% + 128px);
+    top: calc(50% + 90px);
     left: 12px;
     display: flex;
     align-items: center;
@@ -219,6 +215,123 @@
     border-color: rgba(255,80,80,.6);
     color: white;
     box-shadow: 0 0 18px rgba(255,0,0,.4);
+  }
+
+  /* Меню (гамбургер) и кнопка информации */
+  .menu-toggle, .info-toggle {
+    position: fixed;
+    top: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg,#2b0d0d,#150505);
+    border: 1px solid var(--panel-border);
+    color: #f0e0e0;
+    cursor: pointer;
+    z-index: 950;
+    box-shadow: 0 0 10px rgba(255,0,0,.15);
+  }
+  .menu-toggle { left: 12px; }
+  .info-toggle { right: 12px; }
+
+  .menu-panel {
+    position: fixed;
+    top: 56px;
+    left: 12px;
+    width: 220px;
+    background: rgba(20,9,10,.96);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 14px;
+    z-index: 950;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,.6);
+  }
+  .menu-panel.open { display: block; }
+  .menu-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+  .menu-row + .menu-row {
+    border-top: 1px solid rgba(255,0,0,.12);
+  }
+  .menu-row span.menu-label {
+    font-size: 13px;
+    color: #f0e0e0;
+  }
+  .menu-panel .theme-toggle {
+    position: static;
+  }
+  .menu-nick-btn {
+    width: 100%;
+    text-align: left;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: #1a0a0a;
+    color: #f0e0e0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .menu-nick-current {
+    font-size: 11px;
+    color: #c98d8d;
+    margin-top: 6px;
+  }
+
+  /* Бейдж непрочитанных сообщений на кнопке чата */
+  .chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--red);
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 8px rgba(255,0,0,.6);
+  }
+  .chat-badge.show { display: flex; }
+
+  /* Метка "изменено" и кнопка редактирования сообщения в чате */
+  .chat-msg .edited-badge {
+    font-size: 10px;
+    color: #8a6a6a;
+    margin-left: 5px;
+    font-style: italic;
+  }
+  .chat-msg .edit-link {
+    font-size: 10px;
+    color: var(--red2);
+    margin-left: 6px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* Окно "Как пользоваться" */
+  .info-modal { width: 320px; max-height: 80vh; overflow-y: auto; }
+  .info-modal h3 {
+    font-size: 13px;
+    color: var(--red2);
+    margin: 14px 0 4px;
+  }
+  .info-modal h3:first-of-type { margin-top: 0; }
+  .info-modal p {
+    font-size: 12.5px;
+    color: #ddc8c8;
+    line-height: 1.5;
+    margin: 0 0 6px;
   }
   .my-location-dot {
     width: 16px;
@@ -797,18 +910,41 @@
 
   <div class="notice">Не забывайте удалять неактуальное и писать время</div>
 
-  <button class="legend-toggle" id="legendToggle">Памятка</button>
-
-  <button class="theme-toggle" id="themeToggle" title="Светлая / тёмная карта">
-    <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/>
-      <path d="M12 2.5v2.6M12 18.9v2.6M4.6 12H2M22 12h-2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    </svg>
-    <span class="theme-thumb"></span>
-    <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M21 13.2A9 9 0 1 1 10.8 3a7.2 7.2 0 0 0 10.2 10.2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <button class="menu-toggle" id="menuToggle" title="Меню">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     </svg>
   </button>
+
+  <button class="info-toggle" id="infoToggle" title="Как пользоваться">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M12 11v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="12" cy="7.6" r="1.15" fill="currentColor"/>
+    </svg>
+  </button>
+
+  <div class="menu-panel" id="menuPanel">
+    <div class="menu-row">
+      <span class="menu-label">Тема карты</span>
+      <button class="theme-toggle" id="themeToggle" title="Светлая / тёмная карта">
+        <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 2.5v2.6M12 18.9v2.6M4.6 12H2M22 12h-2.6M5.5 5.5l1.8 1.8M16.7 16.7l1.8 1.8M5.5 18.5l1.8-1.8M16.7 7.3l1.8-1.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="theme-thumb"></span>
+        <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 13.2A9 9 0 1 1 10.8 3a7.2 7.2 0 0 0 10.2 10.2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="menu-row" style="display:block">
+      <button class="menu-nick-btn" id="menuNickBtn">Сменить ник в чате</button>
+      <div class="menu-nick-current" id="menuNickCurrent"></div>
+    </div>
+  </div>
+
+  <button class="legend-toggle" id="legendToggle">Памятка</button>
 
   <div class="legend" id="legendPanel">
     <div><span class="dot" style="background:#dc2626"></span>БПЛА-угроза</div>
@@ -858,6 +994,7 @@
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M4 5h16v11H8l-4 4V5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
     </svg>
+    <span class="chat-badge" id="chatBadge">0</span>
   </button>
 
   <div class="chat-panel" id="chatPanel">
@@ -959,6 +1096,31 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="infoModalOverlay">
+  <div class="modal info-modal">
+    <h2>Как пользоваться</h2>
+
+    <h3>Отметки на карте</h3>
+    <p>Клик по карте — добавить отметку (БПЛА-угроза, повреждённая техника, другое). Кнопка «Отметить здесь» добавляет отметку по вашей геолокации. Отметки удаляются автоматически через 30 минут — подтверждайте или опровергайте их, чтобы карта оставалась актуальной.</p>
+
+    <h3>Геолокация и навигатор</h3>
+    <p>Кнопка «Геолокация» показывает вас на карте и предупреждает звуком и надписью «Внимание» при входе в опасную зону. Кнопка «Навигатор» строит маршрут до нужного населённого пункта, проверяет его на опасные участки и во время поездки следит за дорогой.</p>
+
+    <h3>Тревога (SOS)</h3>
+    <p>Кнопка «Тревога» показывает ваше местоположение всем пользователям на карте, пока вы её не отмените.</p>
+
+    <h3>Чат</h3>
+    <p>Общий чат внизу справа. На иконке чата — счётчик непрочитанных сообщений. Свои сообщения можно редактировать, изменённые помечаются подписью «изменено».</p>
+
+    <h3>Меню</h3>
+    <p>В меню (значок с тремя полосками) — переключение светлой/тёмной темы карты и смена ника в чате.</p>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="infoCloseBtn">Понятно</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <!-- Firebase -->
@@ -990,7 +1152,12 @@
     }
     return name;
   }
-  const NICKNAME = getNickname();
+  let NICKNAME = getNickname();
+
+  function setNickname(newName) {
+    NICKNAME = newName;
+    localStorage.setItem('nickname', NICKNAME);
+  }
 
   // ЗАПОЛНИТЕ СВОИМИ ДАННЫМИ ИЗ FIREBASE CONSOLE
   const firebaseConfig = {
@@ -1653,9 +1820,24 @@
   const chatMessages = document.getElementById('chatMessages');
   const chatInput = document.getElementById('chatInput');
   const chatSend = document.getElementById('chatSend');
+  const chatBadge = document.getElementById('chatBadge');
+
+  let chatUnread = 0;
+  let chatInitialLoadDone = false;
+
+  function updateChatBadge() {
+    if (chatUnread > 0) {
+      chatBadge.textContent = chatUnread > 99 ? '99+' : String(chatUnread);
+      chatBadge.classList.add('show');
+    } else {
+      chatBadge.classList.remove('show');
+    }
+  }
 
   chatToggle.addEventListener('click', () => {
     chatPanel.classList.add('open');
+    chatUnread = 0;
+    updateChatBadge();
   });
   chatClose.addEventListener('click', () => {
     chatPanel.classList.remove('open');
@@ -1671,15 +1853,38 @@
   onSnapshot(chatQuery, (snapshot) => {
     chatMessages.innerHTML = '';
     snapshot.forEach((docSnap) => {
+      const id = docSnap.id;
       const m = docSnap.data();
       const row = document.createElement('div');
       row.className = 'chat-msg';
-      row.innerHTML = `<span class="who">${escapeHtml(m.sender || 'Гость')}</span><span class="when">${chatTimeLabel(m.createdAt)}</span>
+      const isMine = m.ownerId === OWNER_ID;
+      const editedHtml = m.editedAt ? '<span class="edited-badge">изменено</span>' : '';
+      const editLinkHtml = isMine ? `<span class="edit-link" onclick="window.__editChatMsg('${id}')">изменить</span>` : '';
+      row.innerHTML = `<span class="who">${escapeHtml(m.sender || 'Гость')}</span><span class="when">${chatTimeLabel(m.createdAt)}</span>${editedHtml}${editLinkHtml}
         <div class="text">${escapeHtml(m.text || '')}</div>`;
       chatMessages.appendChild(row);
     });
     chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    if (!chatInitialLoadDone) {
+      chatInitialLoadDone = true;
+    } else if (!chatPanel.classList.contains('open')) {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' && change.doc.data().ownerId !== OWNER_ID) {
+          chatUnread += 1;
+        }
+      });
+      updateChatBadge();
+    }
   });
+
+  window.__editChatMsg = async (id) => {
+    const current = prompt('Изменить сообщение:');
+    if (current === null) return;
+    const text = current.trim();
+    if (!text) return;
+    await updateDoc(doc(db, 'chat', id), { text, editedAt: serverTimestamp() });
+  };
 
   async function sendChatMessage() {
     const text = chatInput.value.trim();
@@ -1688,6 +1893,7 @@
     await addDoc(chatCollection, {
       text,
       sender: NICKNAME,
+      ownerId: OWNER_ID,
       createdAt: serverTimestamp()
     });
   }
@@ -1702,6 +1908,46 @@
   const legendPanel = document.getElementById('legendPanel');
   legendToggle.addEventListener('click', () => {
     legendPanel.classList.toggle('open');
+  });
+
+  // ---- Меню (гамбургер): тема + смена ника ----
+  const menuToggle = document.getElementById('menuToggle');
+  const menuPanel = document.getElementById('menuPanel');
+  const menuNickBtn = document.getElementById('menuNickBtn');
+  const menuNickCurrent = document.getElementById('menuNickCurrent');
+
+  function refreshMenuNick() {
+    menuNickCurrent.textContent = 'Текущий ник: ' + NICKNAME;
+  }
+  refreshMenuNick();
+
+  menuToggle.addEventListener('click', () => {
+    menuPanel.classList.toggle('open');
+  });
+
+  menuNickBtn.addEventListener('click', () => {
+    const newName = prompt('Введите новый ник для чата:', NICKNAME);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setNickname(trimmed);
+    refreshMenuNick();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!menuPanel.contains(e.target) && e.target !== menuToggle && !menuToggle.contains(e.target)) {
+      menuPanel.classList.remove('open');
+    }
+  });
+
+  // ---- Кнопка "i": как пользоваться ----
+  const infoToggle = document.getElementById('infoToggle');
+  const infoModalOverlay = document.getElementById('infoModalOverlay');
+  infoToggle.addEventListener('click', () => {
+    infoModalOverlay.classList.add('open');
+  });
+  document.getElementById('infoCloseBtn').addEventListener('click', () => {
+    infoModalOverlay.classList.remove('open');
   });
 
   // ---- Навигатор: поиск населённых пунктов, построение маршрута, проверка дороги ----
